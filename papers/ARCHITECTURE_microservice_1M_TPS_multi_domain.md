@@ -1578,5 +1578,19 @@ public List<BookingResponse> getMyBookings(
 | 10 | **Distributed Tracing** | OpenTelemetry → Collector → Jaeger, `traceId` in logs via MDC |
 | 11 | **Resilience** | Idempotency keys, Circuit breaker (Istio+Resilience4j), Bulkhead, Rate limiting |
 | 12 | **Temporal Saga** | Booking flow: Reserve → Charge → Award Points → Confirm, with compensation |
-
+| ①	| Data Migration	| Flyway workflow, backward-compatible rules |
+| ②	| DLQ	| Main → Retry → DLQ pipeline diagram + Spring Kafka config |
+| ③	| Tenant Isolation	| Citus isolate + multi-layer strategy table |
+| ④	| Timezone	| QUY TẮC VÀNG: Store UTC, Display local + Instant code |
+| ⑤	| Audit Trail	| AuditableEntity + PCI-DSS/GDPR/SOX table |
+| ⑥	| Data Retention	| HOT/WARM/COLD/ARCHIVE lifecycle + partition detach SQL |
+| ⑦	| API Versioning	| URI versioning + Sunset header + dual controllers |
+| ⑧	| Distributed Lock	| Redisson Fair Lock code + anti-deadlock pattern |
+| ⑨	| Connection Pool	| PgBouncer diagram + HikariCP tuning YAML |
+| ⑩	| Event Ordering	| Kafka partition key = aggregateId explanation |
+| ⑪	| Schema Evolution	| Backward compatibility rules + Avro |
+| ⑫	| Graceful Shutdown	| K8s preStop + Spring lifecycle timeline |
+| ⑬	| Multi-Currency	| Money value object + integer cents pattern |
+| ⑭	| Timezone Scheduling	| Temporal vs @Scheduled comparison |
+| ⑮	| Read-Your-Writes	| 3 chiến lược + implementation code |
 
