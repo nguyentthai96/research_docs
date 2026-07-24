@@ -15,6 +15,7 @@
 5. [So Sánh Toàn Diện — Decision Matrix](#5-so-sánh-toàn-diện--decision-matrix)
 6. [Khi Nào Chọn Giải Pháp Nào?](#6-khi-nào-chọn-giải-pháp-nào)
 7. [Production Patterns & Anti-Patterns](#7-production-patterns--anti-patterns)
+8. [Use Cases & Domain Problems — Phân Tích Theo Ngữ Cảnh](#8-use-cases--domain-problems--phân-tích-theo-ngữ-cảnh)
 
 ---
 
@@ -1654,4 +1655,1694 @@ START: Bạn cần distributed transaction / saga?
 | 6 | **Eventuate Tram** là middle ground: structured hơn Manual Saga, nhẹ hơn Temporal |
 | 7 | Mọi giải pháp đều YÊU CẦU **idempotency** — đây là foundation, không phải optional |
 | 8 | **Temporal + Kafka** = best combo: Temporal cho orchestration, Kafka cho event-driven decoupling |
+
+---
+
+## 8. Use Cases & Domain Problems — Phân Tích Theo Ngữ Cảnh
+
+### 8.0 Bản Đồ Tổng Quan: Giải Pháp ↔ Domain
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│              SOLUTION ↔ DOMAIN MAPPING                                         │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │                 │  │ DOMAIN PROBLEMS                                     │  │
+│  │  Temporal       │──│ ✅ Order Fulfillment (multi-step, long-running)     │  │
+│  │                 │  │ ✅ Payment Processing (saga + compensation)          │  │
+│  │                 │  │ ✅ Booking/Reservation (days/weeks lifecycle)        │  │
+│  │                 │  │ ✅ AI Agent Orchestration (durable, stateful)        │  │
+│  │                 │  │ ✅ Subscription Billing (recurring, retry)           │  │
+│  │                 │  │ ✅ Data Pipeline Orchestration (ETL, CDC)            │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │  Manual Saga    │──│ ✅ Simple E-commerce (2-3 steps)                    │  │
+│  │  (Spring+Kafka) │  │ ✅ Event Notification Fanout                        │  │
+│  │                 │  │ ✅ Basic Choreography (decoupled services)           │  │
+│  │                 │  │ ⚠️ Complex flows (hidden cost)                      │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │  Spring         │──│ ✅ Order Status Management (lifecycle tracking)     │  │
+│  │  Statemachine   │  │ ✅ Approval Workflows (multi-level, guards)         │  │
+│  │                 │  │ ✅ Insurance Claim Processing (state-driven)         │  │
+│  │                 │  │ ✅ Document/Content Review Pipelines                 │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │  Eventuate      │──│ ✅ Food Delivery (FTGO pattern)                     │  │
+│  │  Tram           │  │ ✅ Ride-Sharing coordination                        │  │
+│  │                 │  │ ✅ Money Transfer (cross-account)                    │  │
+│  │                 │  │ ✅ E-commerce Order Saga (standard pattern)          │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │  Axon           │──│ ✅ Core Banking (KYC, AML, ledger)                  │  │
+│  │  Framework      │  │ ✅ Trading Platforms (order book, audit trail)       │  │
+│  │                 │  │ ✅ Healthcare/MedTech (regulatory, time-travel)      │  │
+│  │                 │  │ ✅ Gift Card / Wallet Systems (event-sourced)        │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │  Camunda        │──│ ✅ Loan Origination & KYC (compliance-heavy)        │  │
+│  │  / Zeebe        │  │ ✅ Insurance Claims + Underwriting                   │  │
+│  │                 │  │ ✅ Patient Journey / Clinical Workflows              │  │
+│  │                 │  │ ✅ Government / Legal Document Processing            │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+│                                                                                 │
+│  ┌─────────────────┐  ┌──────────────────────────────────────────────────────┐  │
+│  │  Spring         │──│ ✅ SaaS MVP (module boundaries)                     │  │
+│  │  Modulith       │  │ ✅ Legacy Monolith Modernization                     │  │
+│  │                 │  │ ✅ Internal Tools / Admin Panels                     │  │
+│  │                 │  │ ✅ Pre-microservices Architecture                    │  │
+│  └─────────────────┘  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 8.1 Manual Saga (Spring Boot + Kafka)
+
+#### Mẫu Domain: E-Commerce Order Choreography
+
+**Bài toán**: Hệ thống e-commerce nhỏ-vừa (2-3 services), team quen Spring Boot + Kafka sẵn, flow mua hàng đơn giản: đặt hàng → thanh toán → giao hàng.
+
+```
+BÀI TOÁN CỤ THỂ: Shop bán đồ điện tử online
+
+  Yêu cầu:
+  • 3 services: Order, Payment, Inventory
+  • Kafka đã có sẵn cho logging/analytics
+  • Team 3-5 người, quen Spring Boot
+  • ~1000 orders/ngày (low-medium volume)
+  • Không cần long-running workflows
+  • Không cần human-in-the-loop
+
+  Flow:
+  ┌──────────┐   OrderCreated   ┌──────────┐  PaymentDone   ┌──────────┐
+  │  Order   │ ───────────────► │ Payment  │ ─────────────► │Inventory │
+  │ Service  │                  │ Service  │                │ Service  │
+  └──────────┘                  └──────────┘                └──────────┘
+       ▲                              │                          │
+       │         PaymentFailed        │    InventoryFailed       │
+       └──────────────────────────────┘──────────────────────────┘
+                     (compensate)                (compensate)
+```
+
+```java
+// ═══ DOMAIN: E-Commerce Order Choreography ═══
+
+// --- Order Service ---
+@Service
+public class OrderService {
+    @Autowired private OrderRepository orderRepo;
+    @Autowired private KafkaTemplate<String, OrderEvent> kafka;
+
+    @Transactional
+    public Order createOrder(CreateOrderRequest req) {
+        Order order = Order.builder()
+            .customerId(req.getCustomerId())
+            .items(req.getItems())
+            .totalAmount(req.getTotalAmount())
+            .status(OrderStatus.PENDING)
+            .build();
+        orderRepo.save(order);
+
+        kafka.send("order-events",
+            new OrderCreatedEvent(order.getId(), order.getTotalAmount(),
+                order.getItems()));
+        return order;
+    }
+
+    // Compensation: cancel order khi payment hoặc inventory fail
+    @KafkaListener(topics = {"payment-events", "inventory-events"},
+                   groupId = "order-compensation")
+    public void handleCompensation(DomainEvent event) {
+        if (event instanceof PaymentFailedEvent pf) {
+            orderRepo.updateStatus(pf.getOrderId(), OrderStatus.CANCELLED);
+        }
+        if (event instanceof InventoryFailedEvent inf) {
+            orderRepo.updateStatus(inf.getOrderId(), OrderStatus.CANCELLED);
+            // Trigger payment refund
+            kafka.send("payment-commands",
+                new RefundCommand(inf.getOrderId(), inf.getPaymentTxId()));
+        }
+    }
+}
+
+// --- Payment Service ---
+@Service
+public class PaymentService {
+    @KafkaListener(topics = "order-events", groupId = "payment-service")
+    public void onOrderCreated(OrderCreatedEvent event) {
+        try {
+            PaymentResult result = stripeGateway.charge(
+                event.getOrderId(),   // idempotency key
+                event.getTotalAmount());
+
+            kafka.send("payment-events",
+                new PaymentChargedEvent(event.getOrderId(),
+                    result.getTransactionId()));
+        } catch (PaymentException e) {
+            kafka.send("payment-events",
+                new PaymentFailedEvent(event.getOrderId(), e.getMessage()));
+        }
+    }
+}
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Flow đơn giản: 2-3 services, ít branching
+✅ Kafka đã có sẵn trong stack
+✅ Team nhỏ, quen Spring Boot, không muốn thêm infra
+✅ Low-medium volume (~1K-10K events/ngày)
+✅ Business logic không thay đổi thường xuyên
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ Flow >5 steps → event spaghetti, khó trace
+❌ Cần long-running process (chờ approval, timer)
+❌ Complex compensation chains
+❌ Cần visibility vào trạng thái saga
+❌ High volume + complex retry logic
+```
+
+---
+
+### 8.2 Spring Statemachine
+
+#### Mẫu Domain 1: Insurance Claim Processing
+
+**Bài toán**: Hệ thống xử lý bảo hiểm, mỗi claim đi qua nhiều trạng thái, có conditional transitions (guard), và cần audit trail rõ ràng.
+
+```
+BÀI TOÁN CỤ THỂ: Công ty bảo hiểm xe
+
+  Lifecycle của 1 Insurance Claim:
+
+  ┌──────────┐  submit   ┌──────────┐  assign    ┌──────────┐
+  │SUBMITTED │──────────►│ REVIEW   │───────────►│ ASSESS   │
+  └──────────┘           └────┬─────┘            └────┬─────┘
+                              │ reject                 │
+                              ▼                        │
+                        ┌──────────┐            ┌──────┴─────┐
+                        │ REJECTED │            │  approve   │
+                        └──────────┘            │ [amount    │
+                                                │  < $5000]  │
+                                                ▼            ▼
+                                          ┌──────────┐ ┌──────────┐
+                                          │AUTO_APPR │ │MANAGER   │
+                                          │          │ │APPROVAL  │
+                                          └────┬─────┘ └────┬─────┘
+                                               │             │
+                                               ▼             ▼
+                                          ┌───────────────────────┐
+                                          │       APPROVED        │
+                                          └───────────┬───────────┘
+                                                      │ process
+                                                      ▼
+                                          ┌───────────────────────┐
+                                          │    PAYMENT_PENDING    │
+                                          └───────────┬───────────┘
+                                                      │ paid
+                                                      ▼
+                                          ┌───────────────────────┐
+                                          │        CLOSED         │
+                                          └───────────────────────┘
+```
+
+```java
+// ═══ DOMAIN: Insurance Claim State Machine ═══
+
+@Configuration
+@EnableStateMachineFactory
+public class ClaimStateMachineConfig
+        extends StateMachineConfigurerAdapter<ClaimStates, ClaimEvents> {
+
+    @Override
+    public void configure(StateMachineStateConfigurer<ClaimStates, ClaimEvents> states)
+            throws Exception {
+        states.withStates()
+            .initial(ClaimStates.SUBMITTED)
+            .state(ClaimStates.UNDER_REVIEW)
+            .state(ClaimStates.ASSESSMENT)
+            .state(ClaimStates.AUTO_APPROVED)
+            .state(ClaimStates.MANAGER_APPROVAL)
+            .state(ClaimStates.APPROVED)
+            .state(ClaimStates.PAYMENT_PENDING)
+            .end(ClaimStates.CLOSED)
+            .end(ClaimStates.REJECTED);
+    }
+
+    @Override
+    public void configure(
+            StateMachineTransitionConfigurer<ClaimStates, ClaimEvents> transitions)
+            throws Exception {
+        transitions
+            .withExternal()
+                .source(ClaimStates.SUBMITTED).target(ClaimStates.UNDER_REVIEW)
+                .event(ClaimEvents.SUBMIT)
+                .action(assignReviewerAction())
+            .and()
+            .withExternal()
+                .source(ClaimStates.UNDER_REVIEW).target(ClaimStates.REJECTED)
+                .event(ClaimEvents.REJECT)
+                .action(notifyRejectionAction())
+            .and()
+            .withExternal()
+                .source(ClaimStates.UNDER_REVIEW).target(ClaimStates.ASSESSMENT)
+                .event(ClaimEvents.ASSIGN_SURVEYOR)
+
+            // ═══ GUARD: Conditional transition based on amount ═══
+            .and()
+            .withExternal()
+                .source(ClaimStates.ASSESSMENT).target(ClaimStates.AUTO_APPROVED)
+                .event(ClaimEvents.APPROVE)
+                .guard(smallClaimGuard())     // amount < $5000
+            .and()
+            .withExternal()
+                .source(ClaimStates.ASSESSMENT).target(ClaimStates.MANAGER_APPROVAL)
+                .event(ClaimEvents.APPROVE)
+                .guard(largeClaimGuard())     // amount >= $5000
+
+            .and()
+            .withExternal()
+                .source(ClaimStates.MANAGER_APPROVAL).target(ClaimStates.APPROVED)
+                .event(ClaimEvents.MANAGER_APPROVE)
+            .and()
+            .withExternal()
+                .source(ClaimStates.AUTO_APPROVED).target(ClaimStates.APPROVED)
+                .event(ClaimEvents.FINALIZE)
+            .and()
+            .withExternal()
+                .source(ClaimStates.APPROVED).target(ClaimStates.PAYMENT_PENDING)
+                .event(ClaimEvents.PROCESS_PAYMENT)
+                .action(initiatePaymentAction())
+            .and()
+            .withExternal()
+                .source(ClaimStates.PAYMENT_PENDING).target(ClaimStates.CLOSED)
+                .event(ClaimEvents.PAYMENT_CONFIRMED);
+    }
+
+    // ═══ GUARD: Business Rule ═══
+    @Bean
+    public Guard<ClaimStates, ClaimEvents> smallClaimGuard() {
+        return context -> {
+            BigDecimal amount = context.getExtendedState()
+                .get("claimAmount", BigDecimal.class);
+            return amount.compareTo(new BigDecimal("5000")) < 0;
+        };
+    }
+
+    @Bean
+    public Guard<ClaimStates, ClaimEvents> largeClaimGuard() {
+        return context -> {
+            BigDecimal amount = context.getExtendedState()
+                .get("claimAmount", BigDecimal.class);
+            return amount.compareTo(new BigDecimal("5000")) >= 0;
+        };
+    }
+
+    // ═══ ACTION: Side effects during transition ═══
+    @Bean
+    public Action<ClaimStates, ClaimEvents> notifyRejectionAction() {
+        return context -> {
+            String claimId = context.getExtendedState()
+                .get("claimId", String.class);
+            notificationService.sendClaimRejected(claimId);
+            auditLog.record(claimId, "REJECTED",
+                context.getEvent().toString());
+        };
+    }
+}
+
+// ═══ SERVICE USAGE ═══
+@Service
+public class ClaimService {
+    @Autowired private StateMachineFactory<ClaimStates, ClaimEvents> factory;
+    @Autowired private StateMachinePersister<ClaimStates, ClaimEvents, String> persister;
+
+    public void submitClaim(String claimId, ClaimRequest request) {
+        StateMachine<ClaimStates, ClaimEvents> sm = factory.getStateMachine(claimId);
+        sm.getExtendedState().getVariables().put("claimId", claimId);
+        sm.getExtendedState().getVariables().put("claimAmount", request.getAmount());
+        sm.sendEvent(ClaimEvents.SUBMIT);
+
+        // Persist state to DB (JPA / Redis)
+        persister.persist(sm, claimId);
+    }
+
+    public void approveClaim(String claimId) {
+        StateMachine<ClaimStates, ClaimEvents> sm = factory.getStateMachine(claimId);
+        persister.restore(sm, claimId);     // Restore from DB
+        sm.sendEvent(ClaimEvents.APPROVE);  // Guard decides AUTO or MANAGER path
+        persister.persist(sm, claimId);
+    }
+}
+```
+
+#### Mẫu Domain 2: Multi-Level Approval Workflow
+
+**Bài toán**: Hệ thống phê duyệt mua sắm doanh nghiệp — purchase request cần nhiều level approval tùy theo giá trị.
+
+```
+BÀI TOÁN CỤ THỂ: Enterprise Procurement
+
+  Rules:
+  • < $1,000    → Auto-approve
+  • $1K - $10K  → Manager approval
+  • $10K - $50K → Director approval
+  • > $50K      → VP + CFO approval (sequential)
+
+  State Machine:
+  ┌────────┐                                    ┌──────────┐
+  │ DRAFT  │─── submit ──►┌─── guard ───────────►│AUTO_APPR │
+  └────────┘              │ (<$1K)               └──────────┘
+                          │
+                          ├─── guard ───────────►┌──────────────┐
+                          │ ($1K-$10K)           │MGR_PENDING   │
+                          │                      └──────┬───────┘
+                          │                             │ mgr_approve
+                          │                             ▼
+                          │                      ┌──────────────┐
+                          │                      │  APPROVED    │
+                          │                      └──────────────┘
+                          │
+                          ├─── guard ───────────►┌──────────────┐
+                          │ ($10K-$50K)          │DIR_PENDING   │
+                          │                      └──────┬───────┘
+                          │                             │ dir_approve
+                          │                             ▼
+                          │                      ┌──────────────┐
+                          │                      │  APPROVED    │
+                          │                      └──────────────┘
+                          │
+                          └─── guard ───────────►┌──────────────┐
+                            (>$50K)              │ VP_PENDING   │
+                                                 └──────┬───────┘
+                                                        │ vp_approve
+                                                        ▼
+                                                 ┌──────────────┐
+                                                 │ CFO_PENDING  │
+                                                 └──────┬───────┘
+                                                        │ cfo_approve
+                                                        ▼
+                                                 ┌──────────────┐
+                                                 │  APPROVED    │
+                                                 └──────────────┘
+
+  Tại bất kỳ level nào, reject → REJECTED (end state)
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Entity có lifecycle rõ ràng (Order, Claim, Ticket, Document)
+✅ State transitions cần guards (business rules)
+✅ Cùng 1 service/database (không distributed)
+✅ Cần audit trail cho state changes
+✅ Approval workflows với conditional routing
+✅ Thay thế if/else/switch spaghetti cho status management
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ Distributed saga (nhiều services, nhiều databases)
+❌ Long-running process (days/weeks) — không có durable timer
+❌ Complex retry logic cho external API calls
+❌ Cần built-in compensation mechanism
+❌ High concurrency state transitions
+```
+
+---
+
+### 8.3 Eventuate Tram Sagas
+
+#### Mẫu Domain: Food Delivery Platform (FTGO Pattern)
+
+**Bài toán**: Platform giao đồ ăn (kiểu GrabFood/ShopeeFood), mỗi order phải coordinate giữa Restaurant, Customer Credit, Payment, và Courier services.
+
+```
+BÀI TOÁN CỤ THỂ: Food Delivery (FTGO — "Food To Go")
+
+  Chris Richardson's canonical example:
+
+  Khi customer đặt đồ ăn:
+  1. Verify customer credit (có đủ tiền không?)
+  2. Nhà hàng confirm (có thể nấu không?)
+  3. Authorize payment
+  4. Approve order → assign courier
+
+  Nếu nhà hàng reject → refund customer credit reservation
+  Nếu payment fail → release restaurant ticket + release credit
+
+  ┌─────────────┐
+  │ CreateOrder  │
+  │ Saga        │
+  │ Orchestrator│
+  └──────┬──────┘
+         │
+    ┌────┼────────┬──────────────┬─────────────┐
+    │    │        │              │             │
+    ▼    │        ▼              ▼             ▼
+  ┌─────┐│   ┌──────────┐  ┌──────────┐  ┌──────────┐
+  │Order││   │Customer  │  │Restaurant│  │ Payment  │
+  │Svc  ││   │Service   │  │Service   │  │ Service  │
+  └─────┘│   │(credit)  │  │(kitchen) │  │(billing) │
+         │   └──────────┘  └──────────┘  └──────────┘
+         │
+         │   Compensation chain nếu bất kỳ step nào fail
+```
+
+```java
+// ═══ DOMAIN: Food Delivery Saga (Eventuate Tram) ═══
+
+@Component
+public class CreateOrderSaga implements SimpleSaga<CreateOrderSagaData> {
+
+    private final SagaDefinition<CreateOrderSagaData> sagaDefinition;
+
+    public CreateOrderSaga() {
+        this.sagaDefinition = step()
+            // Step 1: Create Order (local, PENDING status)
+            .invokeLocal(this::createPendingOrder)
+            .withCompensation(this::rejectOrder)
+
+            // Step 2: Verify Customer Credit
+            .step()
+            .invokeParticipant(this::verifyCustomerCredit)
+            .onReply(CustomerCreditReserved.class, this::onCreditReserved)
+            .withCompensation(this::releaseCustomerCredit)
+
+            // Step 3: Confirm Restaurant can prepare
+            .step()
+            .invokeParticipant(this::createRestaurantTicket)
+            .onReply(TicketCreated.class, this::onTicketCreated)
+            .withCompensation(this::cancelRestaurantTicket)
+
+            // Step 4: Authorize Payment
+            .step()
+            .invokeParticipant(this::authorizePayment)
+            .withCompensation(this::reversePayment)
+
+            // Step 5: Approve Order (local)
+            .step()
+            .invokeLocal(this::approveOrder)
+
+            .build();
+    }
+
+    // ═══ FORWARD STEPS ═══
+    private void createPendingOrder(CreateOrderSagaData data) {
+        Order order = orderRepository.save(Order.create(
+            data.getCustomerId(),
+            data.getRestaurantId(),
+            data.getLineItems()));
+        data.setOrderId(order.getId());
+    }
+
+    private CommandWithDestination verifyCustomerCredit(
+            CreateOrderSagaData data) {
+        return send(new ValidateCustomerCreditCommand(
+                data.getCustomerId(),
+                data.getOrderTotal()))
+            .to("customer-service")
+            .build();
+    }
+
+    private CommandWithDestination createRestaurantTicket(
+            CreateOrderSagaData data) {
+        return send(new CreateTicketCommand(
+                data.getRestaurantId(),
+                data.getLineItems()))
+            .to("restaurant-service")
+            .build();
+    }
+
+    private CommandWithDestination authorizePayment(
+            CreateOrderSagaData data) {
+        return send(new AuthorizePaymentCommand(
+                data.getCustomerId(),
+                data.getOrderId(),
+                data.getOrderTotal()))
+            .to("payment-service")
+            .build();
+    }
+
+    private void approveOrder(CreateOrderSagaData data) {
+        orderRepository.findById(data.getOrderId())
+            .ifPresent(order -> {
+                order.approve();
+                orderRepository.save(order);
+            });
+    }
+
+    // ═══ COMPENSATION STEPS ═══
+    private void rejectOrder(CreateOrderSagaData data) {
+        orderRepository.findById(data.getOrderId())
+            .ifPresent(order -> {
+                order.reject();
+                orderRepository.save(order);
+            });
+    }
+
+    private CommandWithDestination releaseCustomerCredit(
+            CreateOrderSagaData data) {
+        return send(new ReleaseCreditCommand(
+                data.getCreditReservationId()))
+            .to("customer-service")
+            .build();
+    }
+
+    private CommandWithDestination cancelRestaurantTicket(
+            CreateOrderSagaData data) {
+        return send(new CancelTicketCommand(
+                data.getTicketId()))
+            .to("restaurant-service")
+            .build();
+    }
+
+    private CommandWithDestination reversePayment(
+            CreateOrderSagaData data) {
+        return send(new ReversePaymentCommand(
+                data.getPaymentAuthorizationId()))
+            .to("payment-service")
+            .build();
+    }
+}
+
+// ═══ SAGA DATA ═══
+@Data
+public class CreateOrderSagaData {
+    private Long orderId;
+    private Long customerId;
+    private Long restaurantId;
+    private List<OrderLineItem> lineItems;
+    private Money orderTotal;
+
+    // Set by reply handlers
+    private String creditReservationId;
+    private Long ticketId;
+    private String paymentAuthorizationId;
+}
+```
+
+#### Mẫu Domain 2: Money Transfer Between Accounts
+
+```
+BÀI TOÁN: Bank Internal Transfer
+
+  Transfer $500 from Account A → Account B
+
+  Saga Steps:
+  1. Debit Account A ($500)
+  2. Credit Account B ($500)
+
+  Compensation:
+  Nếu Credit Account B fail → Credit lại Account A $500
+
+  Đơn giản nhưng CRITICAL:
+  → Tiền phải khớp (không mất, không duplicate)
+  → Idempotency key bắt buộc
+  → Transactional Outbox đảm bảo message delivery
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Team đã đọc "Microservices Patterns" (Chris Richardson)
+✅ Spring Boot + JPA là stack chính
+✅ Cần Transactional Outbox built-in (dual-write protection)
+✅ 3-5 services tham gia saga
+✅ Orchestration-based saga (central coordinator)
+✅ Không muốn thêm external workflow engine
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ Cần polyglot services (Go, Python, etc.)
+❌ Long-running workflows (>minutes)
+❌ Cần built-in monitoring UI
+❌ Team không familiar với messaging patterns
+❌ Cần scheduled/cron workflows
+```
+
+---
+
+### 8.4 Axon Framework
+
+#### Mẫu Domain 1: Core Banking — Account Ledger
+
+**Bài toán**: Hệ thống ngân hàng cần 100% audit trail cho mọi giao dịch, khả năng "time-travel" (xem state tài khoản tại bất kỳ thời điểm nào), và tách biệt write/read models.
+
+```
+BÀI TOÁN CỤ THỂ: Digital Banking Account Ledger
+
+  Yêu cầu:
+  • Mỗi transaction phải là IMMUTABLE event
+  • Balance = replay tất cả events từ đầu
+  • Audit: "Tại 14:30 ngày 15/7, account này có balance bao nhiêu?"
+  • CQRS: Write side (commands) ≠ Read side (queries)
+  • Saga: Transfer tiền giữa 2 accounts
+
+  EVENT SOURCING MODEL:
+
+  Account A Events:                Account B Events:
+  ┌────────────────────┐          ┌────────────────────┐
+  │ AccountOpened      │          │ AccountOpened      │
+  │   balance: $1000   │          │   balance: $500    │
+  ├────────────────────┤          ├────────────────────┤
+  │ MoneyDeposited     │          │ MoneyDeposited     │
+  │   amount: $200     │          │   amount: $100     │
+  ├────────────────────┤          ├────────────────────┤
+  │ MoneyWithdrawn     │          │                    │
+  │   amount: $500     │          │                    │
+  │   transfer: T-001  │          │                    │
+  ├────────────────────┤          ├────────────────────┤
+  │ ...                │          │ MoneyDeposited     │
+  │                    │          │   amount: $500     │
+  │                    │          │   transfer: T-001  │
+  └────────────────────┘          └────────────────────┘
+
+  Current Balance A = $1000 + $200 - $500 = $700
+  Current Balance B = $500  + $100 + $500 = $1100
+
+  "TIME TRAVEL" → Balance A at event #2 = $1000 + $200 = $1200
+```
+
+```java
+// ═══ DOMAIN: Banking Account with Event Sourcing (Axon) ═══
+
+// ═══ AGGREGATE (Write Side) ═══
+@Aggregate
+public class BankAccount {
+
+    @AggregateIdentifier
+    private String accountId;
+    private BigDecimal balance;
+    private AccountStatus status;
+
+    @CommandHandler
+    public BankAccount(OpenAccountCommand cmd) {
+        if (cmd.getInitialDeposit().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Initial deposit must be positive");
+        }
+        // Event Sourcing: KHÔNG set state trực tiếp
+        // Emit event → event handler sẽ set state
+        AggregateLifecycle.apply(new AccountOpenedEvent(
+            cmd.getAccountId(),
+            cmd.getOwnerName(),
+            cmd.getInitialDeposit()));
+    }
+
+    @CommandHandler
+    public void handle(WithdrawMoneyCommand cmd) {
+        if (balance.compareTo(cmd.getAmount()) < 0) {
+            throw new InsufficientFundsException(
+                "Balance: " + balance + ", Requested: " + cmd.getAmount());
+        }
+        AggregateLifecycle.apply(new MoneyWithdrawnEvent(
+            cmd.getAccountId(),
+            cmd.getAmount(),
+            cmd.getTransferId()));
+    }
+
+    @CommandHandler
+    public void handle(DepositMoneyCommand cmd) {
+        AggregateLifecycle.apply(new MoneyDepositedEvent(
+            cmd.getAccountId(),
+            cmd.getAmount(),
+            cmd.getTransferId()));
+    }
+
+    // ═══ EVENT SOURCING HANDLERS (State reconstruction) ═══
+    @EventSourcingHandler
+    public void on(AccountOpenedEvent event) {
+        this.accountId = event.getAccountId();
+        this.balance = event.getInitialDeposit();
+        this.status = AccountStatus.ACTIVE;
+    }
+
+    @EventSourcingHandler
+    public void on(MoneyWithdrawnEvent event) {
+        this.balance = this.balance.subtract(event.getAmount());
+    }
+
+    @EventSourcingHandler
+    public void on(MoneyDepositedEvent event) {
+        this.balance = this.balance.add(event.getAmount());
+    }
+}
+
+// ═══ SAGA: Money Transfer Between Accounts ═══
+@Saga
+public class MoneyTransferSaga {
+
+    @Autowired
+    private transient CommandGateway commandGateway;
+
+    private String transferId;
+    private String sourceAccountId;
+    private String targetAccountId;
+    private BigDecimal amount;
+
+    @StartSaga
+    @SagaEventHandler(associationProperty = "transferId")
+    public void on(TransferInitiatedEvent event) {
+        this.transferId = event.getTransferId();
+        this.sourceAccountId = event.getSourceAccountId();
+        this.targetAccountId = event.getTargetAccountId();
+        this.amount = event.getAmount();
+
+        // Step 1: Withdraw from source
+        SagaLifecycle.associateWith("accountId", sourceAccountId);
+        commandGateway.send(new WithdrawMoneyCommand(
+            sourceAccountId, amount, transferId));
+    }
+
+    @SagaEventHandler(associationProperty = "accountId")
+    public void on(MoneyWithdrawnEvent event) {
+        // Step 2: Deposit to target
+        SagaLifecycle.associateWith("accountId", targetAccountId);
+        commandGateway.send(new DepositMoneyCommand(
+            targetAccountId, amount, transferId));
+    }
+
+    @SagaEventHandler(associationProperty = "accountId")
+    public void on(MoneyDepositedEvent event) {
+        // Transfer complete!
+        commandGateway.send(new CompleteTransferCommand(transferId));
+    }
+
+    @EndSaga
+    @SagaEventHandler(associationProperty = "transferId")
+    public void on(TransferCompletedEvent event) {
+        // Saga ends successfully
+    }
+
+    // ═══ COMPENSATION ═══
+    @SagaEventHandler(associationProperty = "accountId")
+    public void on(DepositFailedEvent event) {
+        // Target deposit failed → refund source account
+        commandGateway.send(new DepositMoneyCommand(
+            sourceAccountId, amount, "REFUND-" + transferId));
+    }
+
+    @EndSaga
+    @SagaEventHandler(associationProperty = "transferId")
+    public void on(TransferFailedEvent event) {
+        // Saga ends with compensation complete
+    }
+}
+
+// ═══ QUERY SIDE (Read Model) ═══
+@Component
+public class AccountProjection {
+
+    @Autowired
+    private AccountViewRepository viewRepo;
+
+    @EventHandler
+    public void on(AccountOpenedEvent event) {
+        viewRepo.save(new AccountView(
+            event.getAccountId(),
+            event.getOwnerName(),
+            event.getInitialDeposit(),
+            LocalDateTime.now()));
+    }
+
+    @EventHandler
+    public void on(MoneyWithdrawnEvent event) {
+        viewRepo.findById(event.getAccountId())
+            .ifPresent(view -> {
+                view.debit(event.getAmount());
+                viewRepo.save(view);
+            });
+    }
+
+    @EventHandler
+    public void on(MoneyDepositedEvent event) {
+        viewRepo.findById(event.getAccountId())
+            .ifPresent(view -> {
+                view.credit(event.getAmount());
+                viewRepo.save(view);
+            });
+    }
+
+    // ═══ QUERY: Current balance ═══
+    @QueryHandler
+    public AccountView handle(FindAccountQuery query) {
+        return viewRepo.findById(query.getAccountId())
+            .orElseThrow(() -> new AccountNotFoundException(query.getAccountId()));
+    }
+
+    // ═══ QUERY: Balance at specific time ("Time Travel") ═══
+    @QueryHandler
+    public BigDecimal handle(FindBalanceAtTimeQuery query) {
+        // Replay events up to timestamp
+        return eventStore.readEvents(query.getAccountId())
+            .filter(e -> e.getTimestamp().isBefore(query.getTimestamp()))
+            .reduce(BigDecimal.ZERO,
+                (balance, event) -> {
+                    if (event.getPayload() instanceof MoneyDepositedEvent d)
+                        return balance.add(d.getAmount());
+                    if (event.getPayload() instanceof MoneyWithdrawnEvent w)
+                        return balance.subtract(w.getAmount());
+                    return balance;
+                },
+                BigDecimal::add);
+    }
+}
+```
+
+#### Mẫu Domain 2: Gift Card / E-Wallet System
+
+```
+BÀI TOÁN: E-Wallet with Full Audit Trail
+
+  Sao Axon phù hợp:
+  • Mỗi operation (topup, spend, transfer, expire) → immutable event
+  • Balance = sum of all events (verifiable, auditable)
+  • Dispute resolution: replay events → reconstruct exact state
+  • Regulatory: "chứng minh user X đã tiêu $50 tại merchant Y lúc 14:30"
+
+  Events:
+  ├── WalletCreatedEvent(userId, walletId)
+  ├── MoneyToppedUpEvent(walletId, amount, paymentMethod, topupId)
+  ├── MoneySpentEvent(walletId, amount, merchantId, transactionId)
+  ├── MoneyTransferredEvent(from, to, amount, transferId)
+  ├── PromotionCreditedEvent(walletId, amount, campaignId)
+  └── MoneyExpiredEvent(walletId, amount, reason)
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Financial systems: banking, trading, payments, ledger
+✅ Cần 100% audit trail (regulatory compliance)
+✅ Cần "time travel" — rebuild state tại bất kỳ thời điểm
+✅ CQRS: read model tối ưu cho reporting/dashboard
+✅ Domain phức tạp, team commit DDD methodology
+✅ Healthcare/MedTech (traceability requirements)
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ CRUD đơn giản (blog, to-do list, admin panel)
+❌ Team không familiar với DDD/CQRS/Event Sourcing
+❌ Startup cần ship nhanh (learning curve quá cao)
+❌ Read-heavy + simple queries (Event Sourcing overhead)
+❌ Polyglot stack (Axon chỉ Java/Kotlin)
+❌ Budget constrained (Axon Server enterprise license)
+```
+
+---
+
+### 8.5 Camunda / Zeebe
+
+#### Mẫu Domain 1: Loan Origination & KYC
+
+**Bài toán**: Ngân hàng xử lý hồ sơ vay — phải comply với quy định AML/KYC, business analyst cần xem và modify flow, mỗi step cần audit trail rõ ràng.
+
+```
+BÀI TOÁN CỤ THỂ: Mortgage Loan Processing
+
+  Yêu cầu pháp lý:
+  • KYC verification bắt buộc (identity, income, address)
+  • AML screening (sanctions list check)
+  • Credit scoring (internal + external bureau)
+  • Compliance officer review (human task)
+  • Regulatory audit trail (WHY mỗi decision được đưa ra)
+  • Business analyst phải hiểu flow (BPMN diagram)
+
+  BPMN PROCESS:
+  ┌───────┐   ┌──────────┐   ┌──────────┐   ┌──────────────┐
+  │ Start │──►│ Collect  │──►│   KYC    │──►│ AML Screen  │
+  │       │   │ Docs     │   │ Verify   │   │ (sanctions) │
+  └───────┘   └──────────┘   └────┬─────┘   └──────┬───────┘
+                                  │ fail            │
+                                  ▼                 │ pass
+                           ┌──────────┐             ▼
+                           │ REJECTED │    ┌──────────────┐
+                           └──────────┘    │ Credit Score │
+                                           └──────┬───────┘
+                                                   │
+                                    ┌──────────────┼──────────────┐
+                                    │ score<600    │ 600-750      │ >750
+                                    ▼              ▼              ▼
+                             ┌──────────┐  ┌──────────────┐  ┌────────┐
+                             │ REJECTED │  │ Manual Review│  │ AUTO   │
+                             └──────────┘  │ (Human Task) │  │APPROVED│
+                                           └──────┬───────┘  └────────┘
+                                                   │
+                                          approve / reject
+                                                   │
+                                    ┌──────────────┼──────────────┐
+                                    ▼                              ▼
+                             ┌──────────┐                  ┌──────────────┐
+                             │ REJECTED │                  │ Generate     │
+                             └──────────┘                  │ Offer Letter │
+                                                           └──────┬───────┘
+                                                                   │
+                                                                   ▼
+                                                           ┌──────────────┐
+                                                           │  APPROVED    │
+                                                           └──────────────┘
+```
+
+```java
+// ═══ DOMAIN: Loan Processing (Camunda 8 / Zeebe) ═══
+
+// ═══ JOB WORKERS — Each handles one BPMN task ═══
+
+@Component
+public class KycVerificationWorker {
+
+    @Autowired private KycService kycService;
+
+    @JobWorker(type = "kyc-verify", timeout = 30_000)
+    public Map<String, Object> verifyCustomer(
+            @Variable String applicantId,
+            @Variable String documentType,
+            @Variable String documentNumber) {
+
+        KycResult result = kycService.verify(
+            applicantId, documentType, documentNumber);
+
+        return Map.of(
+            "kycStatus", result.getStatus().name(),     // PASSED / FAILED
+            "kycRiskScore", result.getRiskScore(),
+            "kycVerificationId", result.getVerificationId(),
+            "kycTimestamp", Instant.now().toString()
+        );
+    }
+}
+
+@Component
+public class AmlScreeningWorker {
+
+    @Autowired private SanctionsListClient sanctionsClient;
+
+    @JobWorker(type = "aml-screening", timeout = 60_000)
+    public Map<String, Object> screenApplicant(
+            @Variable String applicantName,
+            @Variable String nationality,
+            @Variable String dateOfBirth) {
+
+        AmlResult result = sanctionsClient.screen(
+            applicantName, nationality, dateOfBirth);
+
+        return Map.of(
+            "amlClear", result.isClear(),
+            "amlMatchCount", result.getMatchCount(),
+            "amlDetails", result.getMatchDetails()
+        );
+    }
+}
+
+@Component
+public class CreditScoreWorker {
+
+    @Autowired private CreditBureauClient creditBureau;
+
+    @JobWorker(type = "credit-score", timeout = 30_000)
+    public Map<String, Object> checkCreditScore(
+            @Variable String applicantId,
+            @Variable String ssn) {
+
+        CreditScore score = creditBureau.getScore(ssn);
+
+        return Map.of(
+            "creditScore", score.getValue(),         // 300-850
+            "creditTier", score.getTier().name(),    // EXCELLENT/GOOD/FAIR/POOR
+            "creditReportId", score.getReportId()
+        );
+    }
+}
+
+// ═══ DMN (Decision Model) — Có thể thay bằng BPMN Gateway ═══
+// Trong Camunda Modeler, tạo DMN table:
+//   Input: creditScore (integer)
+//   Output: decision (string)
+//   Rules:
+//     creditScore < 600       → "REJECTED"
+//     600 <= creditScore < 750 → "MANUAL_REVIEW"
+//     creditScore >= 750      → "AUTO_APPROVED"
+
+// ═══ START PROCESS ═══
+@Service
+public class LoanApplicationService {
+
+    @Autowired private ZeebeClient zeebeClient;
+
+    public String submitLoanApplication(LoanApplicationRequest request) {
+        ProcessInstanceEvent instance = zeebeClient.newCreateInstanceCommand()
+            .bpmnProcessId("loan-origination-v2")
+            .latestVersion()
+            .variables(Map.of(
+                "applicantId", request.getApplicantId(),
+                "applicantName", request.getFullName(),
+                "ssn", request.getSsn(),
+                "nationality", request.getNationality(),
+                "documentType", request.getDocumentType(),
+                "documentNumber", request.getDocumentNumber(),
+                "loanAmount", request.getLoanAmount(),
+                "loanPurpose", request.getPurpose()
+            ))
+            .send()
+            .join();
+
+        return String.valueOf(instance.getProcessInstanceKey());
+    }
+}
+```
+
+#### Mẫu Domain 2: Patient Journey (Healthcare)
+
+```
+BÀI TOÁN: Hospital Patient Discharge Workflow
+
+  Khi bệnh nhân xuất viện:
+  1. Bác sĩ xác nhận (Human Task)
+  2. Lab results cleared (Service Task → LIS integration)
+  3. Pharmacy reconciliation (Service Task)
+  4. Insurance claim submission (Service Task)
+  5. Discharge summary generation (Service Task)
+  6. Patient notification (Service Task → SMS/Email)
+  7. Bed release (Service Task → HIS integration)
+
+  Tại sao Camunda:
+  • Clinical staff (non-tech) cần xem flow → BPMN visual
+  • Human Tasks tích hợp sẵn (bác sĩ approve trên UI)
+  • HL7/FHIR integration qua Job Workers
+  • Audit trail cho regulatory compliance (JCI, ISO)
+  • DMN cho clinical decision rules
+```
+
+#### Mẫu Domain 3: Government Document Processing
+
+```
+BÀI TOÁN: Visa Application Processing
+
+  Tại sao Camunda:
+  • Nhiều human tasks (officer review, interview scheduling)
+  • Multi-level approval (officer → supervisor → consul)
+  • Parallel tasks (background check + document verification)
+  • Timer events (SLA: phải xử lý trong 15 business days)
+  • Compensation: nếu reject → return documents, refund fee
+  • Business rules complex → DMN tables
+  • Compliance: mỗi decision phải log lý do
+
+  BPMN handles ALL of this natively!
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Regulated industries: Banking, Insurance, Healthcare, Government
+✅ Business stakeholders cần hiểu và modify flow (BPMN visual)
+✅ Complex rules → DMN (Decision Model and Notation)
+✅ Human-in-the-loop tasks (manual approval, review)
+✅ SLA management (timer events, escalation)
+✅ Audit trail cho compliance (mỗi step được log chi tiết)
+✅ Mixed AI + Human workflows (agentic orchestration 2025+)
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ Pure developer team (không có BA involvement)
+❌ Simple microservice choreography
+❌ High-frequency trading (latency-sensitive)
+❌ Team không muốn maintain BPMN XML diagrams
+❌ Budget constrained (Camunda 8 SaaS pricing)
+❌ Pure code-first preference (Temporal better fit)
+```
+
+---
+
+### 8.6 Spring Modulith
+
+#### Mẫu Domain 1: SaaS Platform MVP
+
+**Bài toán**: Startup xây dựng SaaS platform quản lý bất động sản. Giai đoạn đầu cần ship nhanh, nhưng muốn architecture sạch để scale sau.
+
+```
+BÀI TOÁN CỤ THỂ: Property Management SaaS
+
+  Modules:
+  ┌─────────────────────────────────────────────────┐
+  │  MONOLITH (1 deployable unit)                    │
+  │                                                   │
+  │  ┌─────────────┐  ┌─────────────┐  ┌───────────┐│
+  │  │  Property   │  │  Tenant     │  │  Billing  ││
+  │  │  Module     │  │  Module     │  │  Module   ││
+  │  │             │  │             │  │           ││
+  │  │ • Listing   │  │ • Profiles  │  │ • Invoice ││
+  │  │ • Photos   │  │ • Contracts │  │ • Payment ││
+  │  │ • Amenities│  │ • KYC       │  │ • Receipt ││
+  │  └──────┬──────┘  └──────┬──────┘  └─────┬─────┘│
+  │         │                │                │      │
+  │         └────── Events ──┴──── Events ────┘      │
+  │                                                   │
+  │  ┌─────────────┐  ┌─────────────┐                │
+  │  │Notification │  │  Analytics  │                │
+  │  │  Module     │  │  Module     │                │
+  │  └─────────────┘  └─────────────┘                │
+  │                                                   │
+  │  Shared:                                          │
+  │  └── 1 PostgreSQL Database                        │
+  │  └── 1 Spring Boot Application                    │
+  │  └── 1 Deployment Pipeline                        │
+  └─────────────────────────────────────────────────┘
+
+  Khi scale:
+  → Billing Module traffic tăng 10x
+  → Extract Billing thành microservice riêng
+  → Thay ApplicationEvent bằng Kafka event
+  → Các module khác KHÔNG thay đổi code!
+```
+
+```java
+// ═══ DOMAIN: Property Management SaaS (Spring Modulith) ═══
+
+// ═══ MODULE STRUCTURE ═══
+// com.propmgmt/
+// ├── property/            ← Module 1
+// │   ├── Property.java
+// │   ├── PropertyService.java
+// │   ├── PropertyCreatedEvent.java    ← Published event
+// │   └── internal/                    ← Hidden from other modules
+// │       ├── PropertyRepository.java
+// │       └── PropertyPhotoStorage.java
+// │
+// ├── tenant/              ← Module 2
+// │   ├── Tenant.java
+// │   ├── TenantService.java
+// │   └── internal/
+// │       └── TenantRepository.java
+// │
+// ├── billing/             ← Module 3
+// │   ├── Invoice.java
+// │   ├── BillingService.java
+// │   ├── BillingApi.java              ← Public API for other modules
+// │   └── internal/
+// │       ├── PaymentGateway.java
+// │       └── InvoiceRepository.java
+// │
+// └── notification/        ← Module 4
+//     ├── NotificationListener.java
+//     └── internal/
+//         ├── EmailSender.java
+//         └── SmsSender.java
+
+// ═══ MODULE: Property ═══
+@Service
+@Transactional
+public class PropertyService {
+
+    @Autowired private PropertyRepository propertyRepo;
+    @Autowired private ApplicationEventPublisher events;
+
+    public Property createProperty(CreatePropertyRequest request) {
+        Property property = Property.builder()
+            .ownerId(request.getOwnerId())
+            .address(request.getAddress())
+            .type(request.getType())
+            .monthlyRent(request.getMonthlyRent())
+            .status(PropertyStatus.AVAILABLE)
+            .build();
+
+        propertyRepo.save(property);
+
+        // Publish event — other modules react
+        events.publishEvent(new PropertyCreatedEvent(
+            property.getId(),
+            property.getOwnerId(),
+            property.getAddress()));
+
+        return property;
+    }
+}
+
+// ═══ MODULE: Billing — Reacts to Tenant events ═══
+@Service
+public class BillingEventListener {
+
+    @Autowired private BillingService billingService;
+
+    @ApplicationModuleListener
+    public void onLeaseActivated(LeaseActivatedEvent event) {
+        // Khi tenant ký hợp đồng → tạo recurring invoice
+        billingService.createRecurringInvoice(
+            event.getTenantId(),
+            event.getPropertyId(),
+            event.getMonthlyRent(),
+            event.getLeaseStartDate(),
+            event.getLeaseEndDate());
+    }
+
+    @ApplicationModuleListener
+    public void onLeaseTerminated(LeaseTerminatedEvent event) {
+        billingService.cancelRecurringInvoice(
+            event.getTenantId(),
+            event.getPropertyId());
+
+        billingService.generateFinalSettlement(
+            event.getTenantId(),
+            event.getPropertyId(),
+            event.getTerminationDate());
+    }
+}
+
+// ═══ MODULE: Notification — Reacts to multiple modules ═══
+@Service
+public class NotificationListener {
+
+    @Autowired private EmailSender emailSender;
+
+    @ApplicationModuleListener
+    public void onPropertyCreated(PropertyCreatedEvent event) {
+        emailSender.send(event.getOwnerId(),
+            "Property Listed",
+            "Your property at " + event.getAddress() + " is now listed.");
+    }
+
+    @ApplicationModuleListener
+    public void onInvoiceGenerated(InvoiceGeneratedEvent event) {
+        emailSender.send(event.getTenantId(),
+            "New Invoice",
+            "Invoice #" + event.getInvoiceId() +
+            " for " + event.getAmount() + " is due on " +
+            event.getDueDate());
+    }
+
+    @ApplicationModuleListener
+    public void onPaymentReceived(PaymentReceivedEvent event) {
+        emailSender.send(event.getLandlordId(),
+            "Payment Received",
+            "Tenant payment of " + event.getAmount() +
+            " received for property " + event.getPropertyId());
+    }
+}
+
+// ═══ ARCHITECTURE VERIFICATION (CI Test) ═══
+@SpringBootTest
+class ModularityTests {
+
+    @Test
+    void verifyModuleStructure() {
+        ApplicationModules modules = ApplicationModules.of(Application.class);
+
+        // Fails if:
+        // - billing imports property.internal.* (violation!)
+        // - circular dependency: property → tenant → property
+        modules.verify();
+    }
+
+    @Test
+    void generateDocumentation() {
+        ApplicationModules modules = ApplicationModules.of(Application.class);
+        // Auto-generate C4 diagrams
+        new Documenter(modules).writeDocumentation();
+    }
+}
+```
+
+#### Mẫu Domain 2: Legacy Monolith Modernization
+
+```
+BÀI TOÁN: Migrate Legacy ERP Monolith
+
+  BEFORE (Big Ball of Mud):
+  ┌────────────────────────────────────────────────┐
+  │  Everything imports everything                  │
+  │  OrderService → directly calls InventoryDAO    │
+  │  PaymentService → directly calls OrderDAO      │
+  │  ReportService → queries ALL tables            │
+  │  No clear boundaries, no module isolation      │
+  │  500K+ lines of code, 15 developers            │
+  └────────────────────────────────────────────────┘
+
+  AFTER (Spring Modulith):
+  ┌────────────────────────────────────────────────┐
+  │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐     │
+  │  │ Order │ │Invent.│ │Payment│ │Report │     │
+  │  │ Module│ │Module │ │Module │ │Module │     │
+  │  │       │ │       │ │       │ │       │     │
+  │  │public:│ │public:│ │public:│ │public:│     │
+  │  │ API   │ │ API   │ │ API   │ │ API   │     │
+  │  │       │ │       │ │       │ │       │     │
+  │  │intern:│ │intern:│ │intern:│ │intern:│     │
+  │  │ DAO   │ │ DAO   │ │ DAO   │ │ DAO   │     │
+  │  └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘     │
+  │      │         │         │         │          │
+  │      └─ Events ┴─ Events ┴─ Events ┘          │
+  │                                                │
+  │  Step 1: Define boundaries (package structure) │
+  │  Step 2: Replace direct calls with Events      │
+  │  Step 3: modules.verify() in CI               │
+  │  Step 4: Extract module → microservice (later) │
+  └────────────────────────────────────────────────┘
+
+  Migration Path:
+  Phase 1: Structure  → Package boundaries (1 month)
+  Phase 2: Decouple   → Events replace direct calls (2-3 months)
+  Phase 3: Verify     → CI tests catch violations (ongoing)
+  Phase 4: Extract    → Only modules that NEED independent scaling
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Startup MVP — cần ship nhanh, architecture sạch
+✅ Legacy monolith modernization (step 1 trước microservices)
+✅ Team nhỏ (2-5 devs) — không cần distributed infra overhead
+✅ SaaS platform giai đoạn đầu (<100K users)
+✅ Internal tools / admin panels
+✅ Domain vừa phải (4-8 modules), cùng database
+✅ "Monolith-first" strategy (extract later if needed)
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ Cần scale từng module independently ngay
+❌ Polyglot tech stack (mỗi team dùng language khác)
+❌ Distributed transactions (saga) cần thiết ngay
+❌ >20 modules → monolith quá lớn để deploy
+❌ Different security domains (mỗi module cần isolation riêng)
+```
+
+---
+
+### 8.7 Temporal — Use Cases Production
+
+#### Mẫu Domain 1: Multi-Step Order Fulfillment
+
+**Bài toán**: E-commerce quy mô lớn (Maersk, DoorDash scale), order lifecycle kéo dài từ giờ đến tuần, involve nhiều external services.
+
+```
+BÀI TOÁN: E-commerce Order Fulfillment (Enterprise Scale)
+
+  Order lifecycle: minutes → weeks
+  External services: 5-10 (payment, inventory, warehouse, shipping,
+                            customs, last-mile, notification)
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  ORDER LIFECYCLE (managed by Temporal Workflow)                      │
+  │                                                                      │
+  │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────────────┐ │
+  │  │ Validate │──►│ Payment  │──►│ Warehouse│──►│ Shipping         │ │
+  │  │ Order    │   │ Charge   │   │ Pick+Pack│   │ Label + Dispatch │ │
+  │  └──────────┘   └──────────┘   └──────────┘   └────────┬─────────┘ │
+  │                                                         │           │
+  │                                                         ▼           │
+  │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────────────┐ │
+  │  │ Delivery │──►│ Customer │──►│ Feedback │──►│ Loyalty Points   │ │
+  │  │ Tracking │   │ Confirm  │   │ Request  │   │ + Analytics      │ │
+  │  │ (Signal) │   │ (Signal) │   │ (Timer)  │   └──────────────────┘ │
+  │  └──────────┘   └──────────┘   └──────────┘                        │
+  │                                                                      │
+  │  Features:
+  │  • Payment → saga compensation (refund) nếu warehouse fail          │
+  │  • Shipping tracking → Signal từ carrier webhook                     │
+  │  • Customer confirm → wait Signal (max 7 days, auto-complete)        │
+  │  • Feedback request → Timer: gửi email sau 3 ngày delivery           │
+  │  • Mọi step → idempotent, retry với backoff                          │
+  └─────────────────────────────────────────────────────────────────────┘
+```
+
+```java
+// ═══ DOMAIN: Order Fulfillment (Temporal) ═══
+
+@WorkflowInterface
+public interface OrderFulfillmentWorkflow {
+    @WorkflowMethod
+    OrderResult fulfillOrder(OrderRequest request);
+
+    @SignalMethod
+    void updateShippingStatus(ShippingUpdate update);
+
+    @SignalMethod
+    void customerConfirmDelivery();
+
+    @QueryMethod
+    OrderStatusView getCurrentStatus();
+}
+
+public class OrderFulfillmentWorkflowImpl implements OrderFulfillmentWorkflow {
+
+    private final PaymentActivity paymentAct = /*...*/;
+    private final WarehouseActivity warehouseAct = /*...*/;
+    private final ShippingActivity shippingAct = /*...*/;
+    private final NotificationActivity notifAct = /*...*/;
+    private final LoyaltyActivity loyaltyAct = /*...*/;
+
+    private ShippingStatus shippingStatus = ShippingStatus.PENDING;
+    private boolean customerConfirmed = false;
+    private String currentStep = "VALIDATING";
+
+    @Override
+    public OrderResult fulfillOrder(OrderRequest request) {
+        Saga saga = new Saga(new Saga.Options.Builder()
+            .setParallelCompensation(false)
+            .setContinueWithError(true)
+            .build());
+
+        try {
+            // Step 1: Payment
+            currentStep = "CHARGING_PAYMENT";
+            PaymentResult payment = paymentAct.charge(request.getPayment());
+            saga.addCompensation(paymentAct::refund, payment.getTxId());
+
+            // Step 2: Warehouse pick & pack
+            currentStep = "WAREHOUSE_PROCESSING";
+            PickResult pick = warehouseAct.pickAndPack(request.getItems());
+            saga.addCompensation(warehouseAct::cancelPick, pick.getPickId());
+
+            // Step 3: Create shipping label & dispatch
+            currentStep = "SHIPPING";
+            ShipmentResult shipment = shippingAct.createAndDispatch(
+                pick.getPickId(), request.getAddress());
+            saga.addCompensation(shippingAct::cancelShipment,
+                shipment.getTrackingNumber());
+
+            // Step 4: Wait for delivery (Signal from carrier webhook)
+            currentStep = "IN_TRANSIT";
+            Workflow.await(
+                Duration.ofDays(14),    // Max 14 days for delivery
+                () -> shippingStatus == ShippingStatus.DELIVERED);
+
+            if (shippingStatus != ShippingStatus.DELIVERED) {
+                currentStep = "DELIVERY_TIMEOUT";
+                notifAct.alertOps("Delivery timeout", shipment.getTrackingNumber());
+            }
+
+            // Step 5: Wait for customer confirmation (or auto-confirm)
+            currentStep = "AWAITING_CONFIRMATION";
+            boolean confirmed = Workflow.await(
+                Duration.ofDays(7),     // Auto-confirm after 7 days
+                () -> customerConfirmed);
+
+            if (!confirmed) {
+                customerConfirmed = true;  // Auto-confirm
+            }
+
+            // Step 6: Post-delivery actions (no compensation needed)
+            currentStep = "POST_DELIVERY";
+
+            // Wait 3 days then request feedback
+            Workflow.sleep(Duration.ofDays(3));
+            notifAct.sendFeedbackRequest(request.getCustomerEmail(),
+                request.getOrderId());
+
+            // Add loyalty points
+            loyaltyAct.addPoints(request.getCustomerId(),
+                calculatePoints(request.getTotalAmount()));
+
+            currentStep = "COMPLETED";
+            return OrderResult.success(payment, shipment);
+
+        } catch (ActivityFailure e) {
+            currentStep = "COMPENSATING";
+            saga.compensate();
+            currentStep = "FAILED";
+            throw ApplicationFailure.newFailure(
+                "Order failed: " + e.getMessage(), "ORDER_FAILED");
+        }
+    }
+
+    // ═══ SIGNAL: Carrier webhook cập nhật shipping status ═══
+    @Override
+    public void updateShippingStatus(ShippingUpdate update) {
+        this.shippingStatus = update.getStatus();
+    }
+
+    // ═══ SIGNAL: Customer confirm nhận hàng ═══
+    @Override
+    public void customerConfirmDelivery() {
+        this.customerConfirmed = true;
+    }
+
+    // ═══ QUERY: Xem trạng thái hiện tại ═══
+    @Override
+    public OrderStatusView getCurrentStatus() {
+        return new OrderStatusView(currentStep, shippingStatus,
+            customerConfirmed);
+    }
+}
+```
+
+#### Mẫu Domain 2: Subscription Billing & Renewal
+
+```
+BÀI TOÁN: SaaS Subscription Management
+
+  Subscription lifecycle: months → years
+  Recurring billing: hàng tháng/năm
+  Dunning: retry payment khi fail (3 lần, mỗi lần cách 3 ngày)
+  Grace period: 7 ngày sau payment fail trước khi suspend
+
+  Workflow per subscription:
+  ┌────────────────────────────────────────────────────────────┐
+  │  SUBSCRIPTION WORKFLOW (runs for YEARS)                     │
+  │                                                              │
+  │  while (subscription.isActive()) {                           │
+  │      // Wait until billing date                              │
+  │      Workflow.sleep(untilNextBillingDate);                   │
+  │                                                              │
+  │      // Try charge                                           │
+  │      for (attempt = 1; attempt <= 3; attempt++) {            │
+  │          try {                                               │
+  │              paymentAct.charge(subscription);                │
+  │              notifAct.sendReceipt(subscription);             │
+  │              break;  // Success!                             │
+  │          } catch (PaymentFailedException e) {                │
+  │              notifAct.sendPaymentFailed(subscription);       │
+  │              Workflow.sleep(Duration.ofDays(3)); // Retry    │
+  │          }                                                   │
+  │      }                                                       │
+  │                                                              │
+  │      if (allAttemptsFailed) {                                │
+  │          // Grace period                                     │
+  │          Workflow.sleep(Duration.ofDays(7));                 │
+  │          subscriptionAct.suspend(subscription);              │
+  │                                                              │
+  │          // Wait for manual payment (Signal)                 │
+  │          boolean renewed = Workflow.await(                   │
+  │              Duration.ofDays(30),                             │
+  │              () -> manualPaymentReceived);                   │
+  │                                                              │
+  │          if (!renewed) {                                     │
+  │              subscriptionAct.cancel(subscription);           │
+  │              return;                                         │
+  │          }                                                   │
+  │      }                                                       │
+  │  }                                                           │
+  └────────────────────────────────────────────────────────────┘
+
+  Tại sao Temporal:
+  • Workflow runs for YEARS (durable execution)
+  • Sleep/Timer native (không cần cron job + database flag)
+  • Retry logic built-in
+  • Signal: customer pays manually → workflow resumes
+  • Query: "subscription X đang ở state nào?" → instant answer
+  • Continue-As-New: reset history mỗi billing cycle
+```
+
+#### Mẫu Domain 3: AI Agent Orchestration
+
+```
+BÀI TOÁN: LLM-powered Document Processing (2025+ trend)
+
+  Workflow:
+  1. User upload document
+  2. OCR extraction (Activity → external AI service)
+  3. LLM classification (Activity → OpenAI/Anthropic)
+  4. Data extraction (Activity → structured output)
+  5. Human review if confidence < 80% (Signal, wait up to 48h)
+  6. Database update
+  7. Downstream notification
+
+  Tại sao Temporal:
+  • LLM calls: slow (seconds), expensive, rate-limited → retry
+  • AI confidence threshold → conditional human-in-the-loop
+  • Each step may fail independently → durable execution
+  • Cost tracking per workflow (track API usage)
+  • Long-running: human review may take 48 hours
+  • Observability: exactly which step the document is at
+```
+
+**Khi nào PHÙ HỢP:**
+```
+✅ Complex multi-step workflows (>5 steps)
+✅ Long-running processes (hours → years)
+✅ Need durability: survive crashes, restarts, deployments
+✅ Human-in-the-loop (Signals for external approval)
+✅ Complex retry/timeout/backoff strategies
+✅ Need real-time visibility (Query: "where is order X?")
+✅ Scheduled/recurring workflows (replace @Scheduled + cron)
+✅ AI/ML pipeline orchestration
+✅ Polyglot: Java + Go + Python services
+✅ Enterprise scale (Stripe, DoorDash, Maersk use Temporal)
+```
+
+**Khi nào KHÔNG PHÙ HỢP:**
+```
+❌ Simple 2-3 step flow (overhead quá lớn)
+❌ Same-process/same-DB transactions (dùng @Transactional)
+❌ Team không sẵn sàng operate Temporal cluster
+❌ Budget rất hạn chế (cluster + monitoring)
+❌ Pure event-driven architecture (Kafka choreography đủ)
+❌ BPMN requirement (business stakeholders cần visual → Camunda)
+```
+
+---
+
+### 8.8 Tổng Kết: Quick Reference Card
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    QUICK REFERENCE: CHỌN GIẢI PHÁP NÀO?                        │
+│                                                                                 │
+│  "Tôi đang build SaaS MVP, chưa cần microservices"                             │
+│  → Spring Modulith                                                              │
+│                                                                                 │
+│  "Tôi có 3 services + Kafka, flow mua hàng đơn giản"                           │
+│  → Manual Saga (Spring + Kafka)                                                 │
+│                                                                                 │
+│  "Entity của tôi có lifecycle phức tạp (claim, ticket, order status)"           │
+│  → Spring Statemachine                                                          │
+│                                                                                 │
+│  "Tôi đọc 'Microservices Patterns', muốn structured saga framework"            │
+│  → Eventuate Tram                                                               │
+│                                                                                 │
+│  "Tôi cần 100% audit trail, time-travel, CQRS cho banking/trading"             │
+│  → Axon Framework                                                               │
+│                                                                                 │
+│  "Business analysts cần xem flow, regulated industry, human tasks"              │
+│  → Camunda / Zeebe                                                              │
+│                                                                                 │
+│  "Workflow phức tạp, kéo dài ngày/tuần, cần durable + observable"              │
+│  → Temporal                                                                     │
+│                                                                                 │
+│  "Tôi muốn best-of-breed cho enterprise microservices 2026"                     │
+│  → Temporal (orchestration) + Kafka (event streaming) + Spring Modulith (code)  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Domain Problem | Best Fit | Runner-up |
+|---|---|---|
+| **E-commerce simple** (2-3 services) | Manual Saga | Eventuate Tram |
+| **E-commerce complex** (5+ services, returns, refunds) | **Temporal** | Camunda |
+| **Banking / Financial ledger** | **Axon Framework** | Temporal |
+| **Insurance claims** | **Spring Statemachine** (same-service) / **Camunda** (distributed) | Temporal |
+| **Loan origination / KYC** | **Camunda** | Temporal |
+| **Food delivery / Ride-sharing** | **Eventuate Tram** | Temporal |
+| **Subscription billing** | **Temporal** | Manual Saga |
+| **Healthcare / Patient workflows** | **Camunda** | Temporal |
+| **AI/ML pipeline orchestration** | **Temporal** | Camunda |
+| **Approval workflows** (same service) | **Spring Statemachine** | Camunda |
+| **SaaS MVP** | **Spring Modulith** | Manual Saga |
+| **Legacy modernization** | **Spring Modulith** → extract to Temporal/Kafka later |
+| **Government / Legal processing** | **Camunda** | Temporal |
+| **Wallet / Gift card system** | **Axon Framework** | Temporal |
+| **Data pipeline / ETL** | **Temporal** | Manual (Airflow) |
 
