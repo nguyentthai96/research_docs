@@ -1060,7 +1060,10 @@ public class BookingSagaWorkflowImpl implements BookingSagaWorkflow {
 | **41** | **Test** | Chaos engineering (kill pods) | ☐ |
 | **42** | **Test** | Load testing (k6/Gatling, target 1M TPS) | ☐ |
 
-### 12.2 Các Vấn Đề Thường Bị Bỏ Sót
+### 12.2 Các Vấn Đề Thường Bị Bỏ Sót — Chi Tiết
+
+> **Tại sao section này quan trọng?**  
+> Trong thực tế, hệ thống microservice thường fail không phải vì thiếu feature chính, mà vì bỏ sót các vấn đề "edge case" bên dưới. Mỗi mục sau đây đều là bài học từ production.
 
 | # | Vấn đề | Tại sao quan trọng | Giải pháp |
 |---|---|---|---|
@@ -1079,3 +1082,501 @@ public class BookingSagaWorkflowImpl implements BookingSagaWorkflow {
 | 13 | **Multi-currency** | Floating point errors in money | Use `BigDecimal` + store as integer cents |
 | 14 | **Timezone-aware scheduling** | Cron jobs at wrong times | Temporal schedules with timezone support |
 | 15 | **Read-your-writes** | User creates then immediately reads → stale | Synchronous read from write DB for creator |
+
+---
+
+#### ① Data Migration Strategy
+
+**Vấn đề**: Schema database thay đổi liên tục khi phát triển feature mới. Migration sai → break production data hoặc gây downtime.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  MIGRATION WORKFLOW                                         │
+│                                                             │
+│  Code change → Flyway migration script → CI validation      │
+│                                                             │
+│  Quy tắc Backward-Compatible:                               │
+│  ✅ ADD column (nullable hoặc default)                      │
+│  ✅ ADD index                                                │
+│  ❌ RENAME column → thay bằng ADD new + copy + DROP old     │
+│  ❌ DROP column → chỉ drop SAU KHI không code nào dùng      │
+│  ❌ CHANGE type → thay bằng ADD new column + migrate data   │
+│                                                             │
+│  Deploy flow: Migration chạy TRƯỚC khi code deploy          │
+│  → Old code vẫn chạy được với new schema                    │
+│  → New code deploy → bắt đầu dùng new columns              │
+│  → Cleanup migration (drop old) chạy SAU vài ngày           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+```java
+// Flyway naming: V{version}__{description}.sql
+// V1__create_bookings.sql
+// V2__add_booking_metadata_column.sql
+// V3__backfill_metadata.sql (data migration)
+```
+
+---
+
+#### ② Dead Letter Queue (DLQ)
+
+**Vấn đề**: Kafka consumer gặp lỗi khi xử lý event (poison message, logic error, downstream timeout) → event bị mất hoặc block cả queue.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  DLQ PIPELINE                                                   │
+│                                                                 │
+│  Main Topic: booking-events                                     │
+│       │                                                         │
+│       ▼                                                         │
+│  Consumer: BookingEventHandler                                  │
+│       │                                                         │
+│       ├─── Success → commit offset → done                       │
+│       │                                                         │
+│       └─── Failure (3 retries) ──► Retry Topic                  │
+│                                     booking-events-retry        │
+│                                         │                       │
+│                                         ├── Success → done      │
+│                                         │                       │
+│                                         └── Failure (3 more)    │
+│                                              │                  │
+│                                              ▼                  │
+│                                     Dead Letter Topic            │
+│                                     booking-events-dlq           │
+│                                         │                       │
+│                                         ├── Alert (PagerDuty)   │
+│                                         ├── Dashboard (Grafana)  │
+│                                         └── Manual replay tool   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+```java
+// Spring Kafka DLQ config
+@Configuration
+public class KafkaConsumerConfig {
+    @Bean
+    public DefaultErrorHandler errorHandler(KafkaTemplate<String, String> template) {
+        // Retry 3 lần, backoff 1s → 2s → 4s
+        var backoff = new ExponentialBackOff(1000L, 2.0);
+        backoff.setMaxElapsedTime(30000L);
+
+        // Sau 3 retries → gửi vào DLQ topic
+        var recoverer = new DeadLetterPublishingRecoverer(template,
+            (record, ex) -> new TopicPartition(
+                record.topic() + "-dlq", record.partition()));
+
+        return new DefaultErrorHandler(recoverer, backoff);
+    }
+}
+```
+
+---
+
+#### ③ Tenant Isolation (Noisy Neighbor)
+
+**Vấn đề**: Tenant A chạy report nặng → CPU/IO spike → Tenant B, C bị ảnh hưởng performance.
+
+| Tầng | Isolation Strategy |
+|---|---|
+| **Database** | Citus: isolate large tenant vào dedicated shard/worker node |
+| **Application** | Rate limiting per tenant (Redis sliding window) |
+| **K8s** | ResourceQuota per namespace (nếu namespace-per-tenant) |
+| **Kafka** | Separate consumer groups per tier (premium vs standard) |
+| **Cache** | Redis key prefix per tenant, TTL policy per tier |
+
+```sql
+-- Citus: Isolate noisy tenant to dedicated node
+SELECT isolate_tenant_to_new_shard('bookings', 'tenant-id-abc-heavy');
+SELECT citus_move_shard_placement(shard_id, 'worker-1', 'worker-dedicated');
+```
+
+---
+
+#### ④ Time Zone Handling
+
+**Vấn đề**: Booking tại timezone +7 (Hà Nội), thanh toán tại timezone -5 (New York). Hiển thị sai giờ → khách hàng complain.
+
+```
+QUY TẮC VÀNG:
+• Store:   LUÔN LUÔN lưu UTC (TIMESTAMPTZ)
+• Process: LUÔN LUÔN xử lý bằng UTC
+• Display: Convert sang timezone của USER ở presentation layer
+
+Database:     2026-07-24T04:22:00Z          (UTC)
+API Response: 2026-07-24T04:22:00Z          (UTC — client tự convert)
+UI Vietnam:   2026-07-24 11:22:00 (GMT+7)   (frontend convert)
+UI New York:  2026-07-24 00:22:00 (EDT)      (frontend convert)
+```
+
+```java
+// Entity — always TIMESTAMPTZ
+@Column(columnDefinition = "TIMESTAMPTZ")
+private Instant createdAt = Instant.now();  // ← Instant, NOT LocalDateTime
+
+// API Response — ISO-8601 UTC
+@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+private Instant bookingDate;
+
+// Frontend (JavaScript) — display in user timezone
+// new Date(utcString).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+```
+
+---
+
+#### ⑤ Audit Trail & Compliance
+
+**Vấn đề**: PCI-DSS (payment data), GDPR (personal data) yêu cầu biết AI đã truy cập/thay đổi data GÌ, KHI NÀO, BỞI AI.
+
+```java
+// Tự động audit mọi thay đổi entity
+@Entity
+@EntityListeners(AuditingEntityListener.class)
+public abstract class AuditableEntity {
+    @CreatedBy    private String createdBy;
+    @CreatedDate  private Instant createdAt;
+    @LastModifiedBy    private String modifiedBy;
+    @LastModifiedDate  private Instant modifiedAt;
+}
+```
+
+| Compliance | Yêu cầu | Implementation |
+|---|---|---|
+| **PCI-DSS** | Không lưu card number, encrypt sensitive data | Tokenization (Stripe tokens), field-level encryption |
+| **GDPR** | Right to erasure, data portability | Soft delete + anonymize PII, export endpoint |
+| **SOX** | Financial audit trail | Event sourcing + immutable logs |
+
+---
+
+#### ⑥ Data Retention & Archival
+
+**Vấn đề**: 100M bookings/năm × 5 năm = 500M records. Storage cost tăng, query chậm, backup lớn.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  DATA LIFECYCLE                                             │
+│                                                             │
+│  HOT  (0-3 tháng)   → PostgreSQL (SSD, full index)         │
+│  WARM (3-12 tháng)  → PostgreSQL (partition, partial idx)   │
+│  COLD (1-3 năm)     → S3 + Parquet (query via Athena)      │
+│  ARCHIVE (>3 năm)   → S3 Glacier (compliance retention)    │
+│                                                             │
+│  Implementation: Partition-based archival                   │
+│  • Monthly partitions: bookings_2026_01, bookings_2026_02   │
+│  • Cron job: DETACH partition cũ → export Parquet → S3      │
+│  • DROP partition sau khi confirm S3 upload                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+```sql
+-- Detach and archive old partition
+ALTER TABLE bookings DETACH PARTITION bookings_2024_01;
+COPY bookings_2024_01 TO '/tmp/bookings_2024_01.csv' WITH CSV;
+-- → Upload to S3 → convert Parquet → DROP TABLE bookings_2024_01
+```
+
+---
+
+#### ⑦ API Versioning
+
+**Vấn đề**: Thay đổi API response format → mobile app cũ crash, partner integration break.
+
+```
+Chiến lược: URI Versioning + Sunset Header
+
+GET /api/v1/bookings/123     ← Current stable
+GET /api/v2/bookings/123     ← New version (breaking changes)
+
+Response headers:
+  Sunset: Sat, 01 Jan 2027 00:00:00 GMT     ← v1 sẽ bị retire
+  Deprecation: true
+  Link: </api/v2/bookings>; rel="successor-version"
+
+Quy tắc:
+• v1 và v2 PHẢI chạy song song ít nhất 6 tháng
+• Monitor v1 traffic → khi < 1% → announce sunset
+• Controller layer khác nhau, Service layer dùng chung
+```
+
+```java
+// Separate controllers per version
+@RestController @RequestMapping("/api/v1/bookings")
+public class BookingV1Controller { /* Returns BookingResponseV1 */ }
+
+@RestController @RequestMapping("/api/v2/bookings")
+public class BookingV2Controller { /* Returns BookingResponseV2 with metadata */ }
+```
+
+---
+
+#### ⑧ Distributed Lock Contention
+
+**Vấn đề**: Payment processing dùng Redis lock trên `payment:{orderId}`. Traffic cao → nhiều requests cạnh tranh cùng lock → timeout, retry storm.
+
+```java
+// Redisson Fair Lock — FIFO ordering, tránh starvation
+@Service
+public class PaymentLockService {
+    @Autowired private RedissonClient redisson;
+
+    public PaymentResult processWithLock(String orderId, Supplier<PaymentResult> action) {
+        RLock lock = redisson.getFairLock("payment:" + orderId);
+        try {
+            // Wait tối đa 5s để acquire, tự release sau 30s (anti-deadlock)
+            boolean acquired = lock.tryLock(5, 30, TimeUnit.SECONDS);
+            if (!acquired) {
+                throw new LockAcquisitionException("Cannot acquire lock: " + orderId);
+            }
+            return action.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LockAcquisitionException("Interrupted", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) lock.unlock();
+        }
+    }
+}
+```
+
+---
+
+#### ⑨ Connection Pool Exhaustion
+
+**Vấn đề**: Mỗi pod Spring Boot mở 10 conns × 50 pods = 500 connections. PostgreSQL `max_connections=200` → connection refused.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  CONNECTION POOLING STRATEGY                                │
+│                                                             │
+│  50 pods × HikariCP(5 conns) ──► PgBouncer ──► PostgreSQL   │
+│                                                             │
+│  Không PgBouncer: 50 × 5 = 250 direct conns → QUÁ!         │
+│  Có PgBouncer:    50 × 5 → PgBouncer → 50 real conns       │
+│  → PostgreSQL chỉ thấy 50 connections                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+```yaml
+# application.yml — HikariCP tuning
+spring:
+  datasource:
+    hikari:
+      minimum-idle: 2              # Giảm từ default 10
+      maximum-pool-size: 5         # Giảm từ default 10
+      connection-timeout: 3000     # Fail fast (3s)
+      idle-timeout: 300000         # 5 min idle → release
+      max-lifetime: 1800000        # 30 min → recycle
+      leak-detection-threshold: 60000  # Alert nếu connection > 60s
+```
+
+---
+
+#### ⑩ Event Ordering
+
+**Vấn đề**: `BookingCreated` và `BookingCancelled` events cho cùng booking. Consumer nhận `Cancelled` trước `Created` → state sai.
+
+```
+QUY TẮC: Cùng aggregate → cùng Kafka partition → đảm bảo ordering
+
+Producer key = aggregateId (bookingId)
+→ Kafka hash(key) % numPartitions = partition number
+→ Cùng bookingId luôn vào cùng partition = strict FIFO
+
+BookingCreated(booking-123)   → Partition 5, Offset 100
+BookingUpdated(booking-123)   → Partition 5, Offset 101
+BookingCancelled(booking-123) → Partition 5, Offset 102
+→ Consumer đọc: 100 → 101 → 102 (đúng thứ tự!)
+```
+
+```java
+// Producer — key = aggregateId → same partition
+kafkaTemplate.send("booking-events",
+    booking.getId().toString(),     // ← KEY = bookingId
+    bookingCreatedEvent);
+```
+
+---
+
+#### ⑪ Schema Evolution
+
+**Vấn đề**: Event `BookingCreated` v1 có 5 fields. Version mới thêm `loyaltyTier`. Consumer cũ nhận event mới → deserialize fail → crash.
+
+```
+Schema Registry + Backward Compatibility
+
+v1: { bookingId, customerId, amount, currency, status }
+v2: { bookingId, customerId, amount, currency, status, loyaltyTier? }
+                                                        ↑ optional field
+
+Quy tắc Backward Compatible:
+✅ ADD optional field (có default value)
+✅ ADD new event type
+❌ REMOVE required field
+❌ RENAME field
+❌ CHANGE field type
+
+Consumer cũ đọc v2 event → bỏ qua field mới → vẫn hoạt động!
+Consumer mới đọc v1 event → loyaltyTier = null → handle gracefully
+```
+
+---
+
+#### ⑫ Graceful Shutdown
+
+**Vấn đề**: K8s rolling update → Pod bị terminate → in-flight HTTP requests bị drop → 500 errors.
+
+```yaml
+# K8s Deployment
+spec:
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: booking-service
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+                # Wait 10s cho Istio/Ingress remove endpoint
+```
+
+```yaml
+# application.yml
+server:
+  shutdown: graceful
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+```
+
+```
+Timeline khi pod terminate:
+t=0s   K8s sends preStop → sleep 10s (Istio removes endpoint)
+t=10s  K8s sends SIGTERM → Spring stops accepting NEW requests
+t=10-40s  Spring waits for IN-FLIGHT requests (30s timeout)
+t=40s  Spring shutdown complete → Pod terminated
+t=60s  K8s force kill (terminationGracePeriodSeconds)
+```
+
+---
+
+#### ⑬ Multi-Currency
+
+**Vấn đề**: `double amount = 0.1 + 0.2` → `0.30000000000000004`. Tính sai tiền → tài chính lỗ.
+
+```java
+// ❌ NEVER use double/float for money
+double price = 0.1 + 0.2;  // → 0.30000000000000004
+
+// ✅ BETTER: Store as integer cents (smallest unit)
+// $10.99 → store as 1099 (integer)
+// ¥1000  → store as 1000 (integer, no decimals)
+
+@Entity
+public class Payment {
+    @Column(name = "amount_cents")
+    private long amountCents;       // 1099 = $10.99
+
+    @Column(length = 3)
+    private String currency;        // "USD", "VND", "JPY"
+}
+
+// Value Object
+public record Money(long amountCents, String currency) {
+    public Money add(Money other) {
+        if (!this.currency.equals(other.currency))
+            throw new CurrencyMismatchException();
+        return new Money(this.amountCents + other.amountCents, this.currency);
+    }
+    public BigDecimal toDecimal() {
+        int decimals = CurrencyUtil.getDecimals(currency); // USD=2, JPY=0
+        return BigDecimal.valueOf(amountCents, decimals);
+    }
+}
+```
+
+---
+
+#### ⑭ Timezone-Aware Scheduling
+
+**Vấn đề**: `@Scheduled(cron = "0 0 9 * * *")` chạy 9 AM theo timezone SERVER, không phải timezone business.
+
+```java
+// ❌ Spring @Scheduled — server timezone dependent
+@Scheduled(cron = "0 0 9 * * *")  // 9 AM server time — SAI khi multi-region
+
+// ✅ Temporal Scheduled Workflow — timezone-aware
+ScheduleOptions options = ScheduleOptions.newBuilder()
+    .setScheduleSpec(ScheduleSpec.newBuilder()
+        .addCronString("0 9 * * MON-FRI")
+        .setTimezone("Asia/Ho_Chi_Minh")       // ← Explicit timezone!
+        .build())
+    .build();
+
+scheduleClient.createSchedule("daily-report-vn", schedule, options);
+// Server ở US: job chạy 10 PM US = 9 AM VN → LUÔN ĐÚNG!
+```
+
+---
+
+#### ⑮ Read-Your-Writes Consistency
+
+**Vấn đề**: User tạo booking (write → PostgreSQL) → redirect sang "My Bookings" (read → Elasticsearch) → Booking chưa xuất hiện (event chưa kịp project).
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  READ-YOUR-WRITES PATTERN                                   │
+│                                                             │
+│  Chiến lược 1: "Write-Through Read"                         │
+│  POST /bookings → Write DB → response                       │
+│  GET /bookings/mine → nếu CREATOR → đọc từ Write DB         │
+│                       nếu VIEWER  → đọc từ Read Model       │
+│                                                             │
+│  Chiến lược 2: "Causal Consistency Token"                   │
+│  POST → response header: X-Version: 42                      │
+│  GET  → header: X-After-Version: 42                         │
+│  → Read Model: đã process event ≥ 42? → yes: serve          │
+│  → Chưa → wait 2s hoặc fallback Write DB                    │
+│                                                             │
+│  Chiến lược 3: "Optimistic UI"                              │
+│  POST → Frontend ngay lập tức hiện booking từ response       │
+│  → Background: Read Model eventually catches up              │
+│  → Lần refresh tiếp: data đã consistent                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+```java
+@GetMapping("/api/bookings/mine")
+public List<BookingResponse> getMyBookings(
+        @RequestHeader(value = "X-Created-After", required = false) Instant createdAfter,
+        @AuthenticationPrincipal User user) {
+
+    if (createdAfter != null
+            && createdAfter.isAfter(Instant.now().minus(Duration.ofSeconds(10)))) {
+        // User vừa tạo < 10s → đọc từ Write DB
+        return bookingWriteRepo.findByCustomerId(user.getId());
+    }
+    // Normal → đọc từ Read Model (Elasticsearch)
+    return bookingReadService.findByCustomerId(user.getId());
+}
+```
+
+---
+
+### 12.3 Tóm Tắt 12 Chủ Đề Chính
+
+| # | Chủ đề | Nội dung chính |
+|---|---|---|
+| 1 | **Big Picture** | 7-layer architecture (Client → CDN → Gateway → Mesh → Services → Events → Data) |
+| 2 | **Multi-Domain DDD** | 6 bounded contexts (Booking, Payment, Customer, Loyalty, Notification, Reporting) |
+| 3 | **Provider SPI Pattern** | Interface `PaymentProvider` → implementations (Stripe, VNPay, MoMo) — plug & play per domain |
+| 4 | **CQRS + Event Sourcing** | Write → PostgreSQL, Read → Elasticsearch/Redis, Events → Kafka |
+| 5 | **Transactional Outbox** | Atomicity: entity save + event publish trong 1 DB transaction, CDC via Debezium |
+| 6 | **Sharding (100M+)** | PostgreSQL RANGE partition (by date) + Citus shard (by tenant_id) |
+| 7 | **Cursor Pagination** | Keyset-based (constant O(1) performance), encode cursor = Base64(sortValue + id) |
+| 8 | **Multi-Level Cache** | L1: Caffeine (JVM, 30s TTL) → L2: Redis (distributed, 10min TTL) → DB |
+| 9 | **Unit of Work** | JPA/Hibernate EntityManager = built-in UoW, `@Transactional` = boundary |
+| 10 | **Distributed Tracing** | OpenTelemetry → Collector → Jaeger, `traceId` in logs via MDC |
+| 11 | **Resilience** | Idempotency keys, Circuit breaker (Istio+Resilience4j), Bulkhead, Rate limiting |
+| 12 | **Temporal Saga** | Booking flow: Reserve → Charge → Award Points → Confirm, with compensation |
+
+
