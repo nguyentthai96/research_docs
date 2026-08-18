@@ -3089,3 +3089,23 @@ cargo bench               # Chạy benchmarks
 ---
 
 > **Lời kết**: Rust không phải ngôn ngữ dễ học, nhưng đáng để đầu tư. Hệ thống Ownership, Borrowing, và Lifetimes ban đầu có thể gây frustrating, nhưng khi đã nắm vững, bạn sẽ viết code an toàn, hiệu suất cao, và tự tin hơn bất kỳ ngôn ngữ nào khác. Hãy bắt đầu với Rustlings và xây dựng từng bước! 🦀
+
+
+
+
+
+Tôi cần ngâm cứu Rust language từ zero to hero
+- Những điều cơ bản của ngôn ngữ lập trình Rust
+- Quyền sở hữu
+- Đột biến dữ liệu và vay mượn quyền sở hữu
+- Packages, Crates và Modules
+- Enums và Pattern Matching
+- Collections
+- Xử lý lỗi
+- Generic và Traits trong Rust
+- ứng dụng CLI đầu tiên
+- Closure
+- Iterators
+Giải thích chi tiết về cơ chế Ownership, Borrowing và Reference rồi cả Result<> và Option, unwrap() và Lifetime cùng với ví dụ mẫu code mô tả các trường hợp dễ hiểu.
+98 Problems trong Rustlings là gì?
+Khám phá tổng quan hệ sinh thái framework của Rust, những ưu nhược điểm của các framework và khi nào thì sử dụng framework nào.
