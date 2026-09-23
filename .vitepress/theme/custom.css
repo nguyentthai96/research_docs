@@ -1,0 +1,152 @@
+/* ==========================================================================
+   Research Docs Custom Styling & Reading Optimization
+   ========================================================================== */
+
+:root {
+  /* Tối ưu hóa 2 cạnh màn hình: Mở rộng layout max-width để tận dụng không gian */
+  --vp-layout-max-width: 1840px;
+  --vp-sidebar-width: 290px;
+}
+
+/* ==========================================================================
+   Tối ưu hóa Cột Mục Lục bên phải (Outline / "On this page")
+   Cho phép chữ tự động xuống dòng 2 dòng trọn vẹn, không bị cắt dấu ba chấm (...)
+   ========================================================================== */
+
+.VPDocAsideOutline .outline-link {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.45 !important;
+  padding: 5px 0 !important;
+  display: block !important;
+  word-break: break-word !important;
+}
+
+.VPDocAsideOutline .outline-link:hover,
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1) !important;
+}
+
+/* Tăng độ rộng của cột aside bên phải để các đề mục dài hiển thị thoải mái */
+@media (min-width: 1280px) {
+  .VPDoc .aside {
+    max-width: 300px !important;
+    padding-left: 28px !important;
+  }
+
+  .VPDoc .aside-container {
+    width: 280px !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .VPDoc .aside {
+    max-width: 320px !important;
+    padding-left: 32px !important;
+  }
+
+  .VPDoc .aside-container {
+    width: 300px !important;
+  }
+}
+
+/* ==========================================================================
+   Tối ưu hóa Vùng Nội Dung Đọc (Content Container)
+   Mở rộng độ rộng tối đa để các bảng dữ liệu, sơ đồ kiến trúc và mã code dễ đọc
+   ========================================================================== */
+
+.VPDoc.has-aside .content-container {
+  max-width: 860px !important;
+}
+
+@media (min-width: 1440px) {
+  .VPDoc.has-aside .content-container {
+    max-width: 960px !important;
+  }
+}
+
+@media (min-width: 1680px) {
+  .VPDoc.has-aside .content-container {
+    max-width: 1080px !important;
+  }
+}
+
+/* ==========================================================================
+   Tối ưu hóa Cột Menu Trái (Sidebar)
+   Cho phép tên đề mục dài xuống 2 dòng rõ ràng, khoảng cách dòng thoáng
+   ========================================================================== */
+
+.VPSidebarItem .text {
+  white-space: normal !important;
+  line-height: 1.45 !important;
+  word-break: break-word !important;
+}
+
+.VPSidebarItem .link {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
+.VPSidebarItem .items {
+  padding-left: 12px !important;
+}
+
+/* ==========================================================================
+   Tối ưu hóa Trải Nghiệm Đọc Tài Liệu Chuyên Sâu (Typography)
+   ========================================================================== */
+
+.vp-doc {
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.vp-doc p {
+  line-height: 1.8 !important;
+  margin-top: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.vp-doc li {
+  line-height: 1.75 !important;
+  margin-top: 6px !important;
+  margin-bottom: 6px !important;
+}
+
+.vp-doc h1 {
+  line-height: 1.3 !important;
+  margin-bottom: 24px !important;
+}
+
+.vp-doc h2 {
+  line-height: 1.35 !important;
+  margin-top: 42px !important;
+  margin-bottom: 18px !important;
+  padding-top: 20px !important;
+}
+
+.vp-doc h3 {
+  line-height: 1.4 !important;
+  margin-top: 30px !important;
+  margin-bottom: 14px !important;
+}
+
+.vp-doc h4 {
+  line-height: 1.45 !important;
+  margin-top: 22px !important;
+  margin-bottom: 10px !important;
+}
+
+/* Bảng hiển thị cân đối và cuộn ngang mượt mà khi tràn */
+.vp-doc table {
+  width: 100% !important;
+  display: table !important;
+  margin: 20px 0 !important;
+}
+
+/* Khối trích dẫn (Blockquote / Alert) */
+.vp-doc blockquote {
+  margin: 20px 0 !important;
+  padding: 14px 20px !important;
+  line-height: 1.75 !important;
+}

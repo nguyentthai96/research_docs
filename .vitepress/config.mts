@@ -11,6 +11,8 @@ export default withMermaid(
     ignoreDeadLinks: true,
 
     rewrites: {
+      'guides/README.md': 'guides/index.md',
+      'papers/README.md': 'papers/index.md',
       'design-patterns/README.md': 'design-patterns/index.md',
       'oop-principles/README.md': 'oop-principles/index.md',
       'solid-principles/README.md': 'solid-principles/index.md',
@@ -38,18 +40,20 @@ export default withMermaid(
 
       nav: [
         { text: 'Trang Chủ', link: '/' },
+        { text: '🗺️ Bản Đồ Tri Thức', link: '/#ban-do-tri-thuc' },
         {
           text: 'Guides & Scaling',
           items: [
+            { text: '🧭 Tất Cả Guides (Hub)', link: '/guides/' },
             { text: '🚀 System Scaling & Performance', link: '/guides/system-scaling-performance-guide' },
             { text: '🦀 Rust Zero to Hero Guide', link: '/guides/rust_zero_to_hero_guide' },
-            { text: '⚡ Realtime & WebRTC', link: '/guides/realtime/webrtc_deep_dive' },
-            { text: '🤖 AI Research & Agents', link: '/guides/ai-research/ai_agent_frameworks_deep_dive' },
-            { text: '🔍 RAG & Vector Database', link: '/guides/rag_database_guide' }
+            { text: '⚡ Realtime & WebRTC Deep Dive', link: '/guides/realtime/webrtc_deep_dive' },
+            { text: '🤖 AI Agent Frameworks', link: '/guides/ai-research/ai_agent_frameworks_deep_dive' },
+            { text: '📚 RAG Database Guide', link: '/guides/rag_database_guide' }
           ]
         },
         {
-          text: 'Patterns & Principles',
+          text: 'Patterns & OOP',
           items: [
             { text: '🧩 23 Design Patterns', link: '/design-patterns/' },
             { text: '📐 SOLID Principles', link: '/solid-principles/' },
@@ -59,11 +63,12 @@ export default withMermaid(
         {
           text: 'Distributed Systems & Papers',
           items: [
-            { text: '🏛️ Microservices 1M TPS Multi-Domain', link: '/papers/ARCHITECTURE_microservice_1M_TPS_multi_domain' },
+            { text: '🏛️ Tất Cả Papers (Hub)', link: '/papers/' },
+            { text: '🌐 Microservices 1M TPS Multi-Domain', link: '/papers/ARCHITECTURE_microservice_1M_TPS_multi_domain' },
             { text: '☁️ Spring Cloud, K8s, Istio & Temporal', link: '/papers/ANALYSIS_spring_cloud_k8s_istio_temporal_ecosystem' },
-            { text: '🦁 Apache ZooKeeper Ecosystem 1B TPS', link: '/papers/ANALYSIS_zookeeper_spring_ecosystem_1B_TPS' },
+            { text: '🦁 ZooKeeper Ecosystem 1B TPS', link: '/papers/ANALYSIS_zookeeper_spring_ecosystem_1B_TPS' },
             { text: '📬 Apache Kafka Zero to Advanced', link: '/papers/RESEARCH_kafka_zero_to_advanced' },
-            { text: '📜 Academic Research & Papers', link: '/papers/SYNTHESIS_fake_account_detection_sota' }
+            { text: '📊 Fake Account Detection SOTA', link: '/papers/SYNTHESIS_fake_account_detection_sota' }
           ]
         },
         { text: '☀️ Năng Lượng Mặt Trời', link: '/solar-energy/' },
@@ -77,11 +82,34 @@ export default withMermaid(
 
       sidebar: [
         {
+          text: '🗺️ Tổng Quan & Bản Đồ Tri Thức',
+          collapsed: false,
+          items: [
+            { text: '🏠 Trang Chủ', link: '/' },
+            { text: '🧭 Engineering Guides Hub', link: '/guides/' },
+            { text: '🏛️ Distributed Systems & Papers Hub', link: '/papers/' }
+          ]
+        },
+        {
           text: '🚀 System Engineering & Scaling',
           collapsed: false,
           items: [
             { text: '🚀 System Scaling & Performance', link: '/guides/system-scaling-performance-guide' },
             { text: '🦀 Rust Zero to Hero Guide', link: '/guides/rust_zero_to_hero_guide' }
+          ]
+        },
+        {
+          text: '🏛️ Kiến Trúc Phân Tán & High TPS',
+          collapsed: true,
+          items: [
+            { text: '🏛️ Microservices 1M TPS Multi-Domain', link: '/papers/ARCHITECTURE_microservice_1M_TPS_multi_domain' },
+            { text: '☁️ Spring Cloud K8s Istio & Temporal', link: '/papers/ANALYSIS_spring_cloud_k8s_istio_temporal_ecosystem' },
+            { text: '🦁 ZooKeeper Ecosystem 1B TPS', link: '/papers/ANALYSIS_zookeeper_spring_ecosystem_1B_TPS' },
+            { text: '📬 Apache Kafka Zero to Advanced', link: '/papers/RESEARCH_kafka_zero_to_advanced' },
+            { text: '🔬 Nghiên Cứu Apache ZooKeeper', link: '/papers/RESEARCH_apache_zookeeper' },
+            { text: '📘 Hướng Dẫn ZooKeeper + Spring Boot', link: '/papers/GUIDE_zookeeper_spring_boot' },
+            { text: '🌐 Alibaba Nacos Deep Dive', link: '/papers/RESEARCH_nacos_deep_dive' },
+            { text: '⏳ Temporal Saga vs Spring Ecosystem', link: '/papers/RESEARCH_temporal_saga_vs_spring_ecosystem' }
           ]
         },
         {
@@ -95,24 +123,32 @@ export default withMermaid(
           ]
         },
         {
-          text: '🤖 AI Research & Analysis',
+          text: '🤖 AI Research, RAG & Vector Systems',
           collapsed: true,
           items: [
             { text: '🤖 AI Agent Frameworks Deep Dive', link: '/guides/ai-research/ai_agent_frameworks_deep_dive' },
+            { text: '📚 RAG Database Guide', link: '/guides/rag_database_guide' },
+            { text: '🛠️ RAG DB Implementation Guide', link: '/guides/rag_database_implementation_guide' },
+            { text: '📈 RAG & KAG Evaluation Guide', link: '/guides/rag_kag_evaluation_guide' },
             { text: '🕸️ Social Graph Neo4j GDS Deep Dive', link: '/guides/ai-research/social_graph_neo4j_gds_deep_dive' },
             { text: '👤 Face Analysis Deep Dive', link: '/guides/ai-research/face_analysis_deep_dive' },
             { text: '🔗 Ecosystem Integration Analysis', link: '/guides/ai-research/ecosystem_integration_profile_analysis' },
-            { text: '🕵️ Fake Account Detection Literature', link: '/guides/sota_literature_review_fake_account_detection' },
-            { text: '👥 Facebook Friends Analysis Workflow', link: '/guides/facebook_friends_analysis_workflow' }
+            { text: '👥 Facebook Friends Analysis Workflow', link: '/guides/facebook_friends_analysis_workflow' },
+            { text: '🕵️ Fake Account Detection Literature', link: '/guides/sota_literature_review_fake_account_detection' }
           ]
         },
         {
-          text: '📚 Database & RAG Systems',
+          text: '📜 Nghiên Cứu Học Thuật & Bot Detection',
           collapsed: true,
           items: [
-            { text: '📚 RAG Database Guide', link: '/guides/rag_database_guide' },
-            { text: '🛠️ RAG DB Implementation Guide', link: '/guides/rag_database_implementation_guide' },
-            { text: '📈 RAG & KAG Evaluation Guide', link: '/guides/rag_kag_evaluation_guide' }
+            { text: '📊 Fake Account Detection SOTA Synthesis', link: '/papers/SYNTHESIS_fake_account_detection_sota' },
+            { text: '🤖 Twibot-22 Benchmark', link: '/papers/02_twibot22_benchmark' },
+            { text: '🛡️ SybilGAT (2024)', link: '/papers/03_sybilgat_2024' },
+            { text: '🔍 Graph Clustering Survey', link: '/papers/04_graph_clustering_survey' },
+            { text: '📸 Instagram Fake Detection', link: '/papers/05_instagram_fake_detection' },
+            { text: '🎯 Cluster-Aware Anomaly Detection', link: '/papers/06_cluster_aware_anomaly' },
+            { text: '📈 GNN Comprehensive Survey', link: '/papers/07_gnn_comprehensive_survey' },
+            { text: '💬 LLM Social Bot (2025)', link: '/papers/08_llm_social_bot_2025' }
           ]
         },
         {
@@ -150,34 +186,6 @@ export default withMermaid(
             { text: '2. Quan Hệ Giữa Các Đối Tượng', link: '/oop-principles/02-object-relationships' },
             { text: '3. Nguyên Lý Thiết Kế OOP', link: '/oop-principles/03-design-principles' },
             { text: '4. Áp Dụng Trong Thực Tế', link: '/oop-principles/04-oop-in-practice' }
-          ]
-        },
-        {
-          text: '🏛️ Kiến Trúc Phân Tán & High TPS',
-          collapsed: true,
-          items: [
-            { text: '🏛️ Microservices 1M TPS Multi-Domain', link: '/papers/ARCHITECTURE_microservice_1M_TPS_multi_domain' },
-            { text: '☁️ Spring Cloud K8s Istio & Temporal', link: '/papers/ANALYSIS_spring_cloud_k8s_istio_temporal_ecosystem' },
-            { text: '🦁 ZooKeeper Ecosystem 1B TPS', link: '/papers/ANALYSIS_zookeeper_spring_ecosystem_1B_TPS' },
-            { text: '📬 Apache Kafka Zero to Advanced', link: '/papers/RESEARCH_kafka_zero_to_advanced' },
-            { text: '🔬 Nghiên Cứu Apache ZooKeeper', link: '/papers/RESEARCH_apache_zookeeper' },
-            { text: '📘 Hướng Dẫn ZooKeeper + Spring Boot', link: '/papers/GUIDE_zookeeper_spring_boot' },
-            { text: '🌐 Alibaba Nacos Deep Dive', link: '/papers/RESEARCH_nacos_deep_dive' },
-            { text: '⏳ Temporal Saga vs Spring Ecosystem', link: '/papers/RESEARCH_temporal_saga_vs_spring_ecosystem' }
-          ]
-        },
-        {
-          text: '📜 Nghiên Cứu Học Thuật & Bot Detection',
-          collapsed: true,
-          items: [
-            { text: '📊 Fake Account Detection SOTA Synthesis', link: '/papers/SYNTHESIS_fake_account_detection_sota' },
-            { text: '🤖 Twibot-22 Benchmark', link: '/papers/02_twibot22_benchmark' },
-            { text: '🛡️ SybilGAT (2024)', link: '/papers/03_sybilgat_2024' },
-            { text: '🔍 Graph Clustering Survey', link: '/papers/04_graph_clustering_survey' },
-            { text: '📸 Instagram Fake Detection', link: '/papers/05_instagram_fake_detection' },
-            { text: '🎯 Cluster-Aware Anomaly Detection', link: '/papers/06_cluster_aware_anomaly' },
-            { text: '📈 GNN Comprehensive Survey', link: '/papers/07_gnn_comprehensive_survey' },
-            { text: '💬 LLM Social Bot (2025)', link: '/papers/08_llm_social_bot_2025' }
           ]
         },
         {
