@@ -10,6 +10,13 @@ export default withMermaid(
     cleanUrls: true,
     ignoreDeadLinks: true,
 
+    rewrites: {
+      'design-patterns/README.md': 'design-patterns/index.md',
+      'oop-principles/README.md': 'oop-principles/index.md',
+      'solid-principles/README.md': 'solid-principles/index.md',
+      'solar-energy/README.md': 'solar-energy/index.md'
+    },
+
     head: [
       ['link', { rel: 'icon', type: 'image/svg+xml', href: '/research_docs/logo.svg' }]
     ],
