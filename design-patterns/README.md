@@ -10,7 +10,7 @@
 |---|----------|----------|
 | 1 | [Creational Patterns](./01-creational-patterns.md) | 5 mẫu khởi tạo: Singleton, Factory Method, Abstract Factory, Builder, Prototype |
 | 2 | [Structural Patterns](./02-structural-patterns.md) | 7 mẫu cấu trúc: Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy |
-| 3 | [Behavioral Patterns](./03-behavioral-patterns.md) | 11 mẫu hành vi: Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor |
+| 3 | [Behavioral Patterns Part 1](./03a-behavioral-patterns-part1.md) & [Part 2](./03b-behavioral-patterns-part2.md) | 11 mẫu hành vi: Chain of Responsibility, Command, Interpreter, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor |
 | 4 | [So Sánh & Phân Biệt](./04-pattern-comparison.md) | Ma trận so sánh, các cặp dễ nhầm lẫn, biến thể |
 | 5 | [Kết Hợp Mẫu](./05-pattern-combinations.md) | Chiến lược kết hợp, ví dụ thực tế, anti-patterns |
 

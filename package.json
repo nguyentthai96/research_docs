@@ -1,0 +1,28 @@
+{
+  "name": "research_docs",
+  "version": "1.0.0",
+  "description": "System architecture, design patterns, software principles, and advanced engineering research documentation",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "keywords": [
+    "vitepress",
+    "documentation",
+    "system-architecture",
+    "design-patterns",
+    "solid",
+    "mermaid"
+  ],
+  "author": "Nguyen Thanh Thai",
+  "license": "MIT",
+  "devDependencies": {
+    "markdown-it-mathjax3": "^4.3.2",
+    "mermaid": "^11.4.1",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}

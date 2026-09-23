@@ -13,3 +13,9 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Node & VitePress
+node_modules/
+.vitepress/dist/
+.vitepress/cache/
+dist/
