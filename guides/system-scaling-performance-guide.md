@@ -4,16 +4,54 @@
 
 ---
 
-## Mục Lục
+## Mục Lục Chi Tiết
 
 1. [Các Chỉ Số Đo Lường Hiệu Năng (Performance Metrics)](#1-các-chỉ-số-đo-lường-hiệu-năng)
+   - [1.1 Throughput Metrics (TPS, QPS, RPS, OPS, IOPS, MPS)](#11-throughput-metrics-thông-lượng)
+   - [1.2 Latency Metrics (Response Time, TTFB, Processing Time, RTT)](#12-latency-metrics-độ-trễ)
+   - [1.3 Availability & Reliability (99% đến 99.999%)](#13-availability--reliability)
+   - [1.4 Resource Utilization (CPU, RAM, Disk I/O, Pool)](#14-resource-utilization)
+   - [1.5 Error Metrics (Error Rate, 5xx, Timeout, Retry)](#15-error-metrics)
 2. [Latency Percentiles — P50, P95, P99, P99.9](#2-latency-percentiles)
+   - [2.1 Percentile Là Gì?](#21-percentile-là-gì)
+   - [2.2 Tại Sao Không Dùng Average?](#22-tại-sao-không-dùng-average)
+   - [2.3 Ý Nghĩa Từng Percentile](#23-ý-nghĩa-từng-percentile)
+   - [2.4 Impact Thực Tế Của P99 Với Scale](#24-impact-thực-tế-của-p99-với-scale)
 3. [Benchmark — Thế Nào Là "Tốt"?](#3-benchmark--thế-nào-là-tốt)
+   - [3.1 Latency Benchmarks Theo Loại Hệ Thống (REST, E-Commerce, Banking, Realtime, Search)](#31-latency-benchmarks-theo-loại-hệ-thống)
+   - [3.2 Throughput Benchmarks Theo Component (DB, Cache, Queue)](#32-throughput-benchmarks-theo-component)
+   - [3.3 Latency Reference — Các Con Số Cần Thuộc Lòng](#33-latency-reference--các-con-số-mà-engineer-nên-thuộc-lòng)
 4. [Scaling Roadmap Theo Số Lượng User](#4-scaling-roadmap-theo-số-lượng-user)
+   - [4.1 Tổng Quan Các Mốc (Journey Diagram)](#41-tổng-quan-các-mốc)
+   - [4.2 Mốc 10,000 - 100,000 Users (MVP to Early Production)](#42-mốc-10000---100000-users)
+   - [4.3 Mốc 500,000 Users](#43-mốc-500000-users)
+   - [4.4 Mốc 1,000,000 Users (1M)](#44-mốc-1000000-users-1m)
+   - [4.5 Mốc 10,000,000 Users (10M)](#45-mốc-10000000-users-10m)
+   - [4.6 Mốc 1,000,000,000 Users (1B)](#46-mốc-1000000000-users-1b)
+   - [4.7 Bảng So Sánh Tổng Hợp Các Mốc](#47-bảng-so-sánh-tổng-hợp-các-mốc)
 5. [Chiến Lược Tối Ưu Cụ Thể](#5-chiến-lược-tối-ưu-cụ-thể)
+   - [5.1 Database Optimization (Query, Index, Connection Pool)](#51-database-optimization)
+   - [5.2 Caching Patterns (Cache-Aside, Write-Through, Stampede)](#52-caching-patterns)
+   - [5.3 Async Processing Patterns & Event-Driven](#53-async-processing-patterns)
+   - [5.4 Rate Limiting Strategies (Token Bucket, Leaky Bucket)](#54-rate-limiting-strategies)
+   - [5.5 Load Balancing Strategies](#55-load-balancing-strategies)
+   - [5.6 Circuit Breaker Pattern](#56-circuit-breaker-pattern)
 6. [Công Cụ Đo Lường & Monitoring](#6-công-cụ-đo-lường--monitoring)
+   - [6.1 Load Testing Tools (k6, Locust, wrk, JMeter)](#61-load-testing-tools)
+   - [6.2 Monitoring Stack (Prometheus, Grafana, OpenTelemetry)](#62-monitoring-stack)
+   - [6.3 Key Dashboards Cần Có (RED Method & USE Method)](#63-key-dashboards-cần-có)
 7. [Case Studies Thực Tế](#7-case-studies-thực-tế)
+   - [7.1 Netflix (~230M subscribers)](#71-netflix-230m-subscribers)
+   - [7.2 Discord (~200M MAU)](#72-discord-200m-mau)
+   - [7.3 Shopify (BFCM Peak $7.5B GMV)](#73-shopify-peak-75b-gmv-in-bfcm-2023)
+   - [7.4 WhatsApp (2B+ users)](#74-whatsapp-2b-users)
 8. [Checklist Đánh Giá Hệ Thống](#8-checklist-đánh-giá-hệ-thống)
+   - [8.1 Performance Assessment Checklist](#81-performance-assessment-checklist)
+   - [8.2 Scaling Decision Matrix](#82-scaling-decision-matrix)
+   - [8.3 Capacity Planning Formula](#83-capacity-planning-formula)
+- [Phụ Lục: Quick Reference Card](#phụ-lục-quick-reference-card)
+   - [Latency & Throughput Targets](#latency-targets-quick-reference)
+   - [The Four Golden Signals (Google SRE)](#the-four-golden-signals-google-sre)
 
 ---
 
@@ -315,7 +353,67 @@ P99.9   = 5000ms    ← Worst case cũng 5 giây
 
 ---
 
-### 4.2 Mốc 500,000 Users
+### 4.2 Mốc 10,000 - 100,000 Users
+
+#### Yêu Cầu Hiệu Năng
+
+| Metric | Target | Giải thích |
+|--------|--------|------------|
+| **DAU** (Daily Active Users) | ~1,000 - 20,000 | ~10-20% tổng user đăng ký |
+| **Concurrent Users** | ~50 - 1,000 | ~5-10% DAU giờ cao điểm |
+| **RPS (peak)** | 50 - 300 | 1 user ~3-5 request/phút |
+| **TPS** | 5 - 50 | Giao dịch ghi cơ bản |
+| **P50 Latency** | < 80ms | Đơn giản, không có network hop phức tạp |
+| **P99 Latency** | < 500ms | Chấp nhận được ở giai đoạn đầu |
+| **Availability** | 99.5% - 99.9% | Cho phép bảo trì ngoài giờ |
+
+#### Kiến Trúc Đề Xuất — The Clean Single Server / Small Pair
+
+```
+               ┌────────────────┐
+               │ Cloudflare CDN │ (Free Tier: SSL, DDoS, Caching static)
+               └───────┬────────┘
+                       │
+               ┌───────┴────────┐
+               │ Caddy / Nginx  │ (Reverse Proxy + Let's Encrypt)
+               └───────┬────────┘
+                       │
+         ┌─────────────┴─────────────┐
+         │     Single Host / VPS     │
+         │  ┌─────────────────────┐  │
+         │  │ Monolith Application│  │ (Node.js / Go / Spring / Python)
+         │  └──────────┬──────────┘  │
+         │             │ (Unix Socket / Localhost)
+         │  ┌──────────┴──────────┐  │
+         │  │ PostgreSQL / MySQL  │  │ (hoặc 1 Managed DB instance nhỏ)
+         │  └─────────────────────┘  │
+         │  ┌─────────────────────┐  │
+         │  │ Redis (In-Memory)   │  │ (Session + basic cache)
+         │  └─────────────────────┘  │
+         └───────────────────────────┘
+```
+
+#### Chiến Lược Cụ Thể
+
+1. **Keep It Simple (KISS)**: Không microservices, không Kubernetes, không message queue phức tạp.
+2. **Database cùng host hoặc 1 Managed DB nhỏ**: Tiết kiệm latency mạng (0.1ms via Unix socket/localhost).
+3. **Automated Backups**: Cronjob backup database hàng ngày lên S3/R2/Google Drive.
+4. **Basic Caching**: Dùng in-memory cache hoặc 1 instance Redis nhỏ cho session và query kết quả tĩnh.
+5. **Connection Pooling**: Dùng PgBouncer hoặc HikariCP để tránh cạn kiệt connection pool.
+
+#### Estimated Infrastructure Cost
+
+| Component | Spec | Monthly Cost |
+|-----------|------|--------------|
+| **App + DB VPS** | 4-8 vCPU, 8-16GB RAM (Hetzner / DO / Lightsail) | $20 - $50 |
+| **Cloudflare CDN** | Free Tier | $0 |
+| **Backup Storage** | AWS S3 / Cloudflare R2 (~50GB) | $1 - $3 |
+| **Domain + DNS** | Cloudflare | $10/năm |
+| **Tổng cộng** | | **~$25 - $55 / tháng** |
+
+---
+
+### 4.3 Mốc 500,000 Users
 
 #### Yêu Cầu Hiệu Năng
 
@@ -383,7 +481,7 @@ P99.9   = 5000ms    ← Worst case cũng 5 giây
 
 ---
 
-### 4.3 Mốc 1,000,000 Users (1M)
+### 4.4 Mốc 1,000,000 Users (1M)
 
 #### Yêu Cầu Hiệu Năng
 
@@ -455,7 +553,7 @@ P99.9   = 5000ms    ← Worst case cũng 5 giây
 
 ---
 
-### 4.4 Mốc 10,000,000 Users (10M)
+### 4.5 Mốc 10,000,000 Users (10M)
 
 #### Yêu Cầu Hiệu Năng
 
@@ -578,7 +676,7 @@ P99.9   = 5000ms    ← Worst case cũng 5 giây
 
 ---
 
-### 4.5 Mốc 1,000,000,000 Users (1B)
+### 4.6 Mốc 1,000,000,000 Users (1B)
 
 > [!CAUTION]
 > Chỉ một vài công ty trên thế giới đạt được mốc này: Google, Facebook, WhatsApp, YouTube, WeChat, Instagram. Đây là **engineering ở level hoàn toàn khác**.
@@ -657,22 +755,22 @@ P99.9   = 5000ms    ← Worst case cũng 5 giây
 
 ---
 
-### 4.6 Bảng So Sánh Tổng Hợp Các Mốc
+### 4.7 Bảng So Sánh Tổng Hợp Các Mốc
 
-| Aspect | 500K | 1M | 10M | 100M | 1B |
-|--------|------|-----|------|------|-----|
-| **Architecture** | Monolith | Modular Monolith | Microservices | Distributed Microservices | Global Distributed |
-| **App Servers** | 2-4 | 4-8 | 20-100 pods | 500-2000 pods | 10,000+ pods |
-| **DB Strategy** | Primary+Replica | Primary+Multi-Replica | Sharded (4-16) | Sharded (50-200) | Custom distributed |
-| **Cache** | Single Redis | Redis Cluster | Multi-layer | Regional cache clusters | Global cache mesh |
-| **Message Queue** | Optional | RabbitMQ | Kafka | Kafka (large) | Kafka (massive) + custom |
-| **CDN** | Basic | Standard | Multi-PoP | Multi-CDN | Own CDN |
-| **Monitoring** | CloudWatch | Datadog/NewRelic | Prometheus+Grafana | Custom + Prometheus | Fully custom |
-| **Peak RPS** | 1K-5K | 5K-15K | 50K-150K | 500K-5M | 5M-50M+ |
-| **Target P99** | < 1s | < 800ms | < 500ms | < 300ms | < 300ms |
-| **Team Size** | 3-10 | 10-30 | 30-100 | 100-500 | 500-5000+ |
-| **Monthly Cost** | $2K-5K | $5K-20K | $50K-200K | $500K-5M | $10M-100M+ |
-| **Availability** | 99.9% | 99.95% | 99.99% | 99.99% | 99.999% |
+| Aspect | 10K-100K (MVP) | 500K | 1M | 10M | 100M | 1B |
+|--------|----------------|------|-----|------|------|-----|
+| **Architecture** | Single Host Monolith | Monolith | Modular Monolith | Microservices | Distributed Microservices | Global Distributed |
+| **App Servers** | 1 Single VPS | 2-4 | 4-8 | 20-100 pods | 500-2000 pods | 10,000+ pods |
+| **DB Strategy** | Single DB (same/pair host) | Primary+Replica | Primary+Multi-Replica | Sharded (4-16) | Sharded (50-200) | Custom distributed |
+| **Cache** | Local/Single Redis | Single Redis | Redis Cluster | Multi-layer | Regional cache clusters | Global cache mesh |
+| **Message Queue** | In-Process / DB queue | Optional | RabbitMQ | Kafka | Kafka (large) | Kafka (massive) + custom |
+| **CDN** | Cloudflare Free | Basic | Standard | Multi-PoP | Multi-CDN | Own CDN |
+| **Monitoring** | Basic logs / UptimeRobot | CloudWatch | Datadog/NewRelic | Prometheus+Grafana | Custom + Prometheus | Fully custom |
+| **Peak RPS** | 50-300 | 1K-5K | 5K-15K | 50K-150K | 500K-5M | 5M-50M+ |
+| **Target P99** | < 500ms | < 1s | < 800ms | < 500ms | < 300ms | < 300ms |
+| **Team Size** | 1-3 | 3-10 | 10-30 | 30-100 | 100-500 | 500-5000+ |
+| **Monthly Cost** | $25-60 | $2K-5K | $5K-20K | $50K-200K | $500K-5M | $10M-100M+ |
+| **Availability** | 99.5%-99.9% | 99.9% | 99.95% | 99.99% | 99.99% | 99.999% |
 
 ---
 
