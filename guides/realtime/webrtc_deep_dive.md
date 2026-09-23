@@ -94,7 +94,7 @@ sequenceDiagram
     
     Note over A,B: Phase 3: P2P Established ✓
     
-    A<->B: DTLS Handshake → SRTP/SCTP Data
+    A<<->>B: DTLS Handshake → SRTP/SCTP Data
     
     Note over A,B: Nếu direct thất bại:
     A->>TURN: Allocate relay
@@ -848,7 +848,7 @@ sequenceDiagram
     
     Note over A,B: Phase 3: P2P Established ✓
     
-    A<-->B: DTLS Handshake → SRTP/SCTP Data
+    A<<->>B: DTLS Handshake → SRTP/SCTP Data
     
     Note over A,B: Nếu direct thất bại:
     A->>TURN: Allocate relay
