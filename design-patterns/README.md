@@ -20,7 +20,7 @@
 
 ```mermaid
 graph TB
-    subgraph CREATIONAL["🔨 CREATIONAL (Khởi Tạo)"]
+    subgraph CREATIONAL["🔨 CREATIONAL - Khởi Tạo"]
         direction LR
         S[Singleton]
         FM[Factory Method]
@@ -29,7 +29,7 @@ graph TB
         P[Prototype]
     end
     
-    subgraph STRUCTURAL["🏗️ STRUCTURAL (Cấu Trúc)"]
+    subgraph STRUCTURAL["🏗️ STRUCTURAL - Cấu Trúc"]
         direction LR
         AD[Adapter]
         BR[Bridge]
@@ -40,9 +40,9 @@ graph TB
         PR[Proxy]
     end
     
-    subgraph BEHAVIORAL["⚙️ BEHAVIORAL (Hành Vi)"]
+    subgraph BEHAVIORAL["⚙️ BEHAVIORAL - Hành Vi"]
         direction LR
-        COR[Chain of Resp.]
+        COR[Chain of Responsibility]
         CMD[Command]
         INT[Interpreter]
         IT[Iterator]
@@ -104,7 +104,7 @@ graph LR
     CMD["Command"] -->|"lưu bằng"| MEM["Memento"]
     OBS["Observer"] -->|"thường dùng với"| MED["Mediator"]
     
-    COR["Chain of Resp."] -.->|"giống luồng"| DE
+    COR["Chain of Responsibility"] -.->|"giống luồng"| DE
 ```
 
 > **Ghi chú**: Đường nét liền (→) = quan hệ sử dụng/kết hợp trực tiếp. Đường nét đứt (⇢) = tương đồng về cấu trúc hoặc dễ nhầm lẫn.

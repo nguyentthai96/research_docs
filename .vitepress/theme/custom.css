@@ -150,3 +150,41 @@
   padding: 14px 20px !important;
   line-height: 1.75 !important;
 }
+
+/* ==========================================================================
+   Mermaid Diagram Rendering Fix
+   Ngăn CSS của .vp-doc cascade vào SVG elements gây lỗi font metrics
+   ========================================================================== */
+
+.vp-doc .mermaid {
+  font-size: initial;
+  letter-spacing: normal;
+  line-height: normal;
+}
+
+.vp-doc .mermaid svg text,
+.vp-doc .mermaid svg foreignObject,
+.vp-doc .mermaid svg foreignObject * {
+  font-size: revert !important;
+  letter-spacing: normal !important;
+  line-height: normal !important;
+  word-break: normal !important;
+  white-space: normal !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.vp-doc .mermaid .nodeLabel,
+.vp-doc .mermaid .edgeLabel,
+.vp-doc .mermaid .label,
+.vp-doc .mermaid .cluster-label {
+  font-size: 14px !important;
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+}
+
+.vp-doc .mermaid p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: normal !important;
+}
