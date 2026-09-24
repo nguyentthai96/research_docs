@@ -94,20 +94,25 @@
 
 /* ==========================================================================
    Tối ưu hóa Trải Nghiệm Đọc Tài Liệu Chuyên Sâu (Typography)
+   
+   QUAN TRỌNG: Dùng :not(.mermaid) và :not(.mermaid *) để ngăn CSS cascade
+   vào bên trong mermaid diagrams. Mermaid dùng <p>, <span>, <div> bên trong
+   foreignObject SVG — nếu bị cascade margin/line-height/letter-spacing,
+   text sẽ co lại thành dots (getBoundingClientRect trả về 0).
    ========================================================================== */
 
-.vp-doc {
+.vp-doc:not(.mermaid) {
   font-size: 16px;
   letter-spacing: -0.01em;
 }
 
-.vp-doc p {
+.vp-doc p:not(.mermaid p) {
   line-height: 1.8 !important;
   margin-top: 16px !important;
   margin-bottom: 16px !important;
 }
 
-.vp-doc li {
+.vp-doc li:not(.mermaid li) {
   line-height: 1.75 !important;
   margin-top: 6px !important;
   margin-bottom: 6px !important;
@@ -153,38 +158,44 @@
 
 /* ==========================================================================
    Mermaid Diagram Rendering Fix
-   Ngăn CSS của .vp-doc cascade vào SVG elements gây lỗi font metrics
+   
+   Root cause: .vp-doc CSS (font-size, letter-spacing, line-height, margin)
+   cascades vào <p>, <span>, <div> bên trong mermaid SVG foreignObject,
+   gây getBoundingClientRect() trả về width=0/height=0 → text render
+   thành dots nhỏ xíu.
+   
+   Fix: 
+   1. Scope .vp-doc p/li bằng :not(.mermaid *) (phía trên)
+   2. Reset toàn bộ inherited properties trên .mermaid container
+   3. Override cụ thể cho p/span/div bên trong mermaid
    ========================================================================== */
 
 .vp-doc .mermaid {
-  font-size: initial;
-  letter-spacing: normal;
-  line-height: normal;
-}
-
-.vp-doc .mermaid svg text,
-.vp-doc .mermaid svg foreignObject,
-.vp-doc .mermaid svg foreignObject * {
-  font-size: revert !important;
+  all: initial !important;
+  display: block !important;
+  font-family: 'trebuchet ms', verdana, arial, sans-serif !important;
+  font-size: 16px !important;
   letter-spacing: normal !important;
   line-height: normal !important;
-  word-break: normal !important;
-  white-space: normal !important;
+  color: var(--vp-c-text-1) !important;
+  visibility: visible !important;
+  margin: 20px 0 !important;
+}
+
+.vp-doc .mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.vp-doc .mermaid p,
+.vp-doc .mermaid span,
+.vp-doc .mermaid div,
+.vp-doc .mermaid foreignObject p,
+.vp-doc .mermaid foreignObject span,
+.vp-doc .mermaid foreignObject div {
   margin: 0 !important;
   padding: 0 !important;
-}
-
-.vp-doc .mermaid .nodeLabel,
-.vp-doc .mermaid .edgeLabel,
-.vp-doc .mermaid .label,
-.vp-doc .mermaid .cluster-label {
-  font-size: 14px !important;
-  letter-spacing: normal !important;
-  line-height: 1.4 !important;
-}
-
-.vp-doc .mermaid p {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
   line-height: normal !important;
+  letter-spacing: normal !important;
+  font-size: inherit !important;
 }
