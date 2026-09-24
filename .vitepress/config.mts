@@ -20,8 +20,32 @@ export default withMermaid(
     },
 
     head: [
-      ['link', { rel: 'icon', type: 'image/svg+xml', href: '/research_docs/logo.svg' }]
+      ['link', { rel: 'icon', type: 'image/svg+xml', href: '/research_docs/logo.svg' }],
+      // CSS reset for mermaid text measurement — prevents .vp-doc styles from
+      // cascading into mermaid's foreignObject elements and breaking getBoundingClientRect()
+      ['style', {}, `
+        .vp-doc .mermaid { font-size: 16px !important; letter-spacing: normal !important; line-height: normal !important; }
+        .vp-doc .mermaid svg { max-width: 100% !important; height: auto !important; }
+        .vp-doc .mermaid p, .vp-doc .mermaid span, .vp-doc .mermaid div,
+        .vp-doc .mermaid foreignObject p, .vp-doc .mermaid foreignObject span,
+        .vp-doc .mermaid foreignObject div,
+        [id^="d"] p, [id^="d"] span, [id^="d"] div {
+          margin: 0 !important; padding: 0 !important;
+          line-height: normal !important; letter-spacing: normal !important;
+        }
+      `]
     ],
+
+    vite: {
+      build: {
+        commonjsOptions: {
+          include: [/node_modules/]
+        }
+      },
+      ssr: {
+        noExternal: ['mermaid']
+      }
+    },
 
     mermaid: {
       // Mermaid configuration
