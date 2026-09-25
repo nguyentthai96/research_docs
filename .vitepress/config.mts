@@ -42,6 +42,9 @@ export default withMermaid(
           include: [/node_modules/]
         }
       },
+      optimizeDeps: {
+        include: ['mermaid', 'fastdom']
+      },
       ssr: {
         noExternal: ['mermaid']
       }
@@ -63,7 +66,6 @@ export default withMermaid(
       },
 
       nav: [
-        { text: 'Trang Chủ', link: '/' },
         { text: '🗺️ Bản Đồ Tri Thức', link: '/#ban-do-tri-thuc' },
         {
           text: 'Guides & Scaling',
@@ -268,7 +270,7 @@ export default withMermaid(
 
       footer: {
         message: 'Released under the MIT License.',
-        copyright: 'Copyright © 2026 Nguyen Thanh Thai'
+        copyright: 'Copyright © 2026 Nguyen Thanh Thai - Generate by AI agent.'
       },
 
       docFooter: {

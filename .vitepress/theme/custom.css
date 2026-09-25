@@ -199,3 +199,203 @@
   letter-spacing: normal !important;
   font-size: inherit !important;
 }
+
+/* ==========================================================================
+   Search Box — Wider & Consistent Position
+   ========================================================================== */
+
+/* Make the search box wider on desktop */
+@media (min-width: 768px) {
+  .VPNavBarSearch {
+    flex-grow: 1 !important;
+    padding-left: 16px !important;
+  }
+
+  .DocSearch-Button {
+    max-width: 420px !important; /* wider search box */
+  }
+}
+
+/* On content pages with sidebar, reduce the extra left shift */
+@media (min-width: 960px) {
+  .VPNavBar.has-sidebar .content {
+    padding-left: calc(var(--vp-sidebar-width) - 48px) !important;
+  }
+}
+
+/* ==========================================================================
+   Collapsible Sidebar — Auto-hide + Toggle Button
+   
+   Behavior:
+   - Default: Sidebar auto-hides to thin strip, expands on hover
+   - Pinned (body.sidebar-pinned): Sidebar stays open, no auto-hide
+   - Toggle button: Pin/unpin sidebar, persisted in localStorage
+   ========================================================================== */
+
+/* Toggle button styling (now positioned inside the sidebar flow) */
+.sidebar-toggle-btn-wrapper {
+  display: flex;
+  justify-content: flex-start; /* move to left */
+  padding-left: 0;
+  margin-bottom: 8px; /* space before the first group */
+  position: relative;
+  z-index: 100;
+}
+
+/* Remove duplicated base class since it's now in SidebarToggle.vue scoped CSS */
+.sidebar-toggle-btn {
+  /* Only global overrides if any */
+}
+
+/* Custom thinner scrollbar for the sidebar (auto-hide) */
+.VPSidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.VPSidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.VPSidebar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+}
+.VPSidebar:hover::-webkit-scrollbar-thumb {
+  background-color: var(--vp-c-divider);
+}
+.VPSidebar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--vp-c-text-3);
+}
+.VPSidebar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+.VPSidebar:hover {
+  scrollbar-color: var(--vp-c-divider) transparent;
+}
+
+/* Hide toggle button on mobile (VitePress has its own hamburger) */
+@media (max-width: 959px) {
+  .sidebar-toggle-btn-wrapper {
+    display: none !important;
+  }
+}
+
+/* --- Desktop Sidebar Auto-hide behavior (min-width: 960px) --- */
+@media (min-width: 960px) {
+
+  /* Sidebar container — collapsed by default */
+  .VPSidebar {
+    width: 320px !important; /* Fixed width to give title more room */
+    padding-left: 20px !important; /* Optimized left margin */
+    padding-right: 4px !important; /* Optimized right margin to utilize space near scrollbar */
+    transform: translateX(calc(-320px + 8px)) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease;
+    z-index: 15; /* Must be BELOW VPNav (z-index: 20) to avoid text overlapping navbar */
+    overflow: hidden !important;
+  }
+
+  /* Ensure navbar always covers sidebar content when scrolling */
+  .VPNav {
+    z-index: var(--vp-z-index-nav, 20) !important;
+    background-color: var(--vp-nav-bg-color, var(--vp-c-bg)) !important;
+  }
+
+  /* Override VitePress default .group width (var(--vp-sidebar-width) - 64px) */
+  .VPSidebar .group {
+    width: 100% !important;
+    padding-right: 8px !important; /* small padding before scrollbar */
+  }
+
+  /* Thin visible strip — visual hint that sidebar exists */
+  .VPSidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--vp-c-divider)
+    );
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  /* Hide the strip hint when sidebar is expanded */
+  .VPSidebar:hover::before,
+  body.sidebar-pinned .VPSidebar::before {
+    opacity: 0;
+  }
+
+  /* Expand sidebar on hover */
+  .VPSidebar:hover {
+    transform: translateX(0) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Sidebar inner content fades in on expand */
+  .VPSidebar .nav {
+    opacity: 0;
+    transition: opacity 0.2s ease 0.1s;
+  }
+
+  .VPSidebar:hover .nav {
+    opacity: 1;
+  }
+
+  /* --- Pinned state: sidebar stays open --- */
+  body.sidebar-pinned .VPSidebar {
+    transform: translateX(0) !important;
+    overflow-y: auto !important;
+  }
+
+  body.sidebar-pinned .VPSidebar .nav {
+    opacity: 1;
+  }
+
+  /* --- Content area shift when sidebar is collapsed --- */
+  /* When sidebar is collapsed, let content use the full width */
+  .VPContent.has-sidebar {
+    padding-left: 24px !important;
+    transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* When sidebar is pinned, restore normal padding */
+  body.sidebar-pinned .VPContent.has-sidebar {
+    padding-left: calc(320px + 24px) !important;
+  }
+
+  /* Optimize main content width (make it wider) */
+  .VPDoc:not(.has-sidebar) .container,
+  .VPDoc .container {
+    max-width: 100% !important;
+  }
+  
+  .VPDoc:not(.has-sidebar) .content,
+  .VPDoc .content {
+    max-width: 1100px !important; /* Increase from default 752px/784px */
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .VPDoc:not(.has-sidebar) .content,
+  .VPDoc .content {
+    max-width: 1250px !important;
+  }
+
+  /* Adjust toggle button position based on state */
+  /* Remove the shift to the right so it stays nicely inside the sidebar */
+  body.sidebar-pinned .sidebar-toggle-btn {
+    opacity: 0.7;
+  }
+
+  body.sidebar-pinned .sidebar-toggle-btn:hover {
+    opacity: 1;
+  }
+}
