@@ -44,6 +44,10 @@ features:
     title: SOLID & OOP Principles
     details: Phân tích sâu 5 nguyên lý SOLID và 4 trụ cột OOP, các mối quan hệ giữa các đối tượng và cẩm nang refactoring chống anti-patterns.
     link: /solid-principles/
+  - icon: 🔴
+    title: Redis Deep Dive
+    details: Nghiên cứu toàn diện Redis từ cơ bản đến chuyên sâu — kiến trúc single-threaded, 10+ cấu trúc dữ liệu, persistence, Sentinel/Cluster HA, caching patterns, và production checklist.
+    link: /guides/redis_deep_dive
   - icon: ☀️
     title: Năng Lượng Mặt Trời (Solar Energy)
     details: Nghiên cứu thiết kế hệ thống điện mặt trời mái nhà, tính toán phụ tải, so sánh Inverter/Pin lưu trữ và phân tích hoàn vốn Anker SOLIX X1.
