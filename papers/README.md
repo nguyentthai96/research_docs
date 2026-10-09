@@ -11,6 +11,7 @@ graph TD
     Papers["🏛️ Papers & Deep Research"]
     
     Papers --> Dist["🌐 Distributed Architecture & High TPS"]
+    Papers --> Frontend["⚛️ Frontend Architecture & State"]
     Papers --> Academic["📜 Academic Papers & Graph Mining"]
     
     Dist --> Micro1M["Microservices 1M TPS Multi-Domain"]
@@ -20,6 +21,8 @@ graph TD
     Dist --> ZKDeep["ZooKeeper Architecture & Spring Guide"]
     Dist --> Nacos["Alibaba Nacos Deep Dive"]
     Dist --> Temporal["Temporal Saga vs Spring Ecosystem"]
+
+    Frontend --> ReactFiber["React Fiber vs Zustand vs TanStack Query"]
     
     Academic --> SOTA["Fake Account Detection SOTA Synthesis"]
     Academic --> Twibot["Twibot-22 Benchmark"]
@@ -30,7 +33,9 @@ graph TD
 
     classDef default fill:#1e1e2e,stroke:#3b4252,stroke-width:1px,color:#eceff4;
     classDef highlight fill:#2e3440,stroke:#88c0d0,stroke-width:2px,color:#88c0d0;
+    classDef frontend fill:#2e3440,stroke:#a3be8c,stroke-width:2px,color:#a3be8c;
     class Micro1M,Kafka,ZK1B,SOTA,SybilGAT,GNN highlight;
+    class ReactFiber frontend;
 ```
 
 ---
@@ -52,7 +57,17 @@ Các nghiên cứu thực chiến giải quyết bài toán tải cực lớn, �
 
 ---
 
-## 2. 📜 Nghiên Cứu Học Thuật & Đồ Thị (Academic Papers & Bot Detection)
+## 2. ⚛️ Kiến Trúc Frontend & State Management
+
+Nghiên cứu chuyên sâu về kiến trúc rendering, quản lý trạng thái client/server trong hệ sinh thái React hiện đại:
+
+| Tài Liệu | Trọng Tâm Kiến Trúc | Phiên Bản | Liên Kết |
+|---|---|:---:|:---:|
+| **React Fiber vs Zustand vs TanStack Query** | So sánh chi tiết React Fiber (rendering engine), Zustand (client state), TanStack Query (server state) — ba lớp kiến trúc khác nhau trong một ứng dụng React hiện đại. | `React 18/19+, Zustand v5, TQ v5` | [Đọc ngay →](./RESEARCH_react_fiber_zustand_tanstack_query) |
+
+---
+
+## 3. 📜 Nghiên Cứu Học Thuật & Đồ Thị (Academic Papers & Bot Detection)
 
 Tổng hợp các nghiên cứu khoa học đỉnh cao về Graph Neural Networks, phát hiện bot và tài khoản độc hại:
 
