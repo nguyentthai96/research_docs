@@ -92,6 +92,7 @@ export default withMermaid(
             { text: '☁️ Spring Cloud, K8s, Istio & Temporal', link: '/papers/ANALYSIS_spring_cloud_k8s_istio_temporal_ecosystem' },
             { text: '🦁 ZooKeeper Ecosystem 1B TPS', link: '/papers/ANALYSIS_zookeeper_spring_ecosystem_1B_TPS' },
             { text: '📬 Apache Kafka Zero to Advanced', link: '/papers/RESEARCH_kafka_zero_to_advanced' },
+            { text: '⚛️ React Fiber vs Zustand vs TanStack Query', link: '/papers/RESEARCH_react_fiber_zustand_tanstack_query' },
             { text: '📊 Fake Account Detection SOTA', link: '/papers/SYNTHESIS_fake_account_detection_sota' }
           ]
         },
@@ -134,6 +135,13 @@ export default withMermaid(
             { text: '📘 Hướng Dẫn ZooKeeper + Spring Boot', link: '/papers/GUIDE_zookeeper_spring_boot' },
             { text: '🌐 Alibaba Nacos Deep Dive', link: '/papers/RESEARCH_nacos_deep_dive' },
             { text: '⏳ Temporal Saga vs Spring Ecosystem', link: '/papers/RESEARCH_temporal_saga_vs_spring_ecosystem' }
+          ]
+        },
+        {
+          text: '⚛️ Frontend Architecture & State Management',
+          collapsed: true,
+          items: [
+            { text: '⚛️ React Fiber vs Zustand vs TanStack Query', link: '/papers/RESEARCH_react_fiber_zustand_tanstack_query' }
           ]
         },
         {
