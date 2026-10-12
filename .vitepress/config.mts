@@ -16,7 +16,8 @@ export default withMermaid(
       'design-patterns/README.md': 'design-patterns/index.md',
       'oop-principles/README.md': 'oop-principles/index.md',
       'solid-principles/README.md': 'solid-principles/index.md',
-      'solar-energy/README.md': 'solar-energy/index.md'
+      'solar-energy/README.md': 'solar-energy/index.md',
+      'guides/tts-research/README.md': 'guides/tts-research/index.md'
     },
 
     head: [
@@ -43,10 +44,10 @@ export default withMermaid(
         }
       },
       optimizeDeps: {
-        include: ['mermaid', 'fastdom']
+        include: ['mermaid', 'fastdom'],
       },
       ssr: {
-        noExternal: ['mermaid']
+        noExternal: ['mermaid', 'fastdom']
       }
     },
 
@@ -99,7 +100,15 @@ export default withMermaid(
           ]
         },
         { text: '☀️ Năng Lượng Mặt Trời', link: '/solar-energy/' },
-        { text: '🎯 Research Skills', link: '/research_skills_sota' }
+        { text: '🎯 Research Skills', link: '/research_skills_sota' },
+        {
+          text: '🔊 TTS Research',
+          items: [
+            { text: '🔊 TTS Research Hub', link: '/guides/tts-research/' },
+            { text: '📊 Vietnamese TTS Research', link: '/guides/tts-research/vietnamese-tts-research' },
+            { text: '🏗️ Hybrid TTS Architecture', link: '/guides/tts-research/tts-hybrid-architecture' }
+          ]
+        }
       ],
 
       outline: {
@@ -243,6 +252,15 @@ export default withMermaid(
           collapsed: true,
           items: [
             { text: '🎯 Research Skills SOTA', link: '/research_skills_sota' }
+          ]
+        },
+        {
+          text: '🔊 Vietnamese TTS Research',
+          collapsed: false,
+          items: [
+            { text: '🔊 TTS Research Hub', link: '/guides/tts-research/' },
+            { text: '📊 Vietnamese TTS Research', link: '/guides/tts-research/vietnamese-tts-research' },
+            { text: '🏗️ Hybrid TTS Architecture', link: '/guides/tts-research/tts-hybrid-architecture' }
           ]
         }
       ],
