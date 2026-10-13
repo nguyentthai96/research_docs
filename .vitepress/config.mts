@@ -47,7 +47,7 @@ export default withMermaid(
         include: ['mermaid', 'fastdom'],
       },
       ssr: {
-        noExternal: ['mermaid', 'fastdom']
+        noExternal: ['mermaid', 'fastdom', 'kokoro-js', '@realtimex/piper-tts-web']
       }
     },
 

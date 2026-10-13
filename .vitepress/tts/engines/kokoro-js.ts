@@ -2,14 +2,6 @@
 
 import type { TTSEngine, TTSRequest, TTSResult, TTSVoice } from '../types';
 
-/**
- * Dynamically import a module by name, fully bypassing Vite static analysis.
- * This is necessary because kokoro-js is an optional dependency.
- */
-async function dynamicImport(name: string): Promise<any> {
-  return new Function('name', 'return import(name)')(name);
-}
-
 export class KokoroJSEngine implements TTSEngine {
   readonly name = 'kokoro-js';
   readonly type = 'browser' as const;
@@ -31,7 +23,8 @@ export class KokoroJSEngine implements TTSEngine {
     this.initializing = true;
     this.initPromise = (async () => {
       try {
-        const mod = await dynamicImport('kokoro-js');
+        // Vite code-splits this import — only loaded when engine is actually used
+        const mod = await import('kokoro-js');
         const KokoroTTS = mod.KokoroTTS || mod.default?.KokoroTTS;
 
         if (!KokoroTTS) {

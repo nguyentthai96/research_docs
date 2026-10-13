@@ -2,14 +2,6 @@
 
 import type { TTSEngine, TTSRequest, TTSResult, TTSVoice } from '../types';
 
-/**
- * Dynamically import a module by name, fully bypassing Vite static analysis.
- * This is necessary because @realtimex/piper-tts-web is an optional dependency.
- */
-async function dynamicImport(name: string): Promise<any> {
-  return new Function('name', 'return import(name)')(name);
-}
-
 export class PiperWASMEngine implements TTSEngine {
   readonly name = 'piper-wasm';
   readonly type = 'browser' as const;
@@ -26,7 +18,8 @@ export class PiperWASMEngine implements TTSEngine {
 
     this.initPromise = (async () => {
       try {
-        const piperModule = await dynamicImport('@realtimex/piper-tts-web');
+        // Vite code-splits this import — only loaded when engine is actually used
+        const piperModule = await import('@realtimex/piper-tts-web');
         const TtsSession = piperModule.TtsSession || piperModule.default?.TtsSession;
 
         if (!TtsSession) {
