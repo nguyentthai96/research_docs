@@ -7,6 +7,7 @@ import { EdgeTTSEngine } from '../../tts/engines/edge-tts';
 import { KokoroJSEngine } from '../../tts/engines/kokoro-js';
 import { PiperWASMEngine } from '../../tts/engines/piper-wasm';
 import { VieNeuEngine } from '../../tts/engines/vieneu';
+import { WebSpeechEngine } from '../../tts/engines/web-speech';
 
 import { extractReadableText, mergeShortSegments, segmentsToFullText } from '../../tts/preprocessing/text-extractor';
 import { expandAbbreviations } from '../../tts/preprocessing/tech-dictionary';
@@ -58,7 +59,8 @@ onMounted(async () => {
 
   router.register(new KokoroJSEngine());
   router.register(new PiperWASMEngine());
-  // WebSpeechEngine removed — voice quality too low for Vietnamese
+  // Web Speech API as last-resort fallback (always available in browsers)
+  router.register(new WebSpeechEngine());
 
   // Set default voice
   const voices = router.getAllVoices();
@@ -189,7 +191,7 @@ async function readSegment(index: number) {
 
   if (cached && cached.audio.size > 0) {
     currentEngine.value = cached.engine + ' (cached)';
-    await playAudio(cached.audio, index);
+    await playAudio(cached.audio, index, cached.engine);
     return;
   }
 
@@ -218,7 +220,7 @@ async function readSegment(index: number) {
     }
 
     // 7. Play
-    await playAudio(result.audio, index);
+    await playAudio(result.audio, index, result.selectedEngine || result.engine);
   } catch (err) {
     // If this segment fails, try next
     console.warn(`[TTS] Segment ${index} failed, skipping:`, err);
@@ -226,10 +228,19 @@ async function readSegment(index: number) {
   }
 }
 
-function playAudio(blob: Blob, segmentIndex: number): Promise<void> {
+function playAudio(blob: Blob, segmentIndex: number, engineName?: string): Promise<void> {
   return new Promise((resolve) => {
-    if (blob.size === 0) {
-      // Skip empty audio
+    if (blob.size === 0 && engineName !== 'web-speech') {
+      // Skip empty audio (but not for web-speech which plays directly)
+      unhighlightSegment(segmentIndex);
+      resolve();
+      readSegment(segmentIndex + 1);
+      return;
+    }
+
+    // Web Speech API already played audio directly, just advance
+    if (engineName === 'web-speech') {
+      state.value = 'playing';
       unhighlightSegment(segmentIndex);
       resolve();
       readSegment(segmentIndex + 1);
