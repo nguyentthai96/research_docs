@@ -6,6 +6,8 @@ export class EdgeTTSEngine implements TTSEngine {
   readonly name = 'edge-tts';
   readonly type = 'cloud' as const;
   private proxyUrl: string;
+  private availabilityChecked = false;
+  private availabilityResult = false;
 
   constructor(proxyUrl: string) {
     this.proxyUrl = proxyUrl;
@@ -14,12 +16,17 @@ export class EdgeTTSEngine implements TTSEngine {
   async isAvailable(): Promise<boolean> {
     if (!navigator.onLine) return false;
     if (!this.proxyUrl) return false;
+    // Only check health once — cache the result
+    if (this.availabilityChecked) return this.availabilityResult;
+    this.availabilityChecked = true;
     try {
       const res = await fetch(`${this.proxyUrl}/health`, {
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(2000),
       });
-      return res.ok;
+      this.availabilityResult = res.ok;
+      return this.availabilityResult;
     } catch {
+      this.availabilityResult = false;
       return false;
     }
   }

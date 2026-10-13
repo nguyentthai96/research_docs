@@ -7,8 +7,10 @@ export class PiperWASMEngine implements TTSEngine {
   readonly type = 'browser' as const;
   private session: any = null;
   private initPromise: Promise<void> | null = null;
+  private initFailed = false;
 
   async isAvailable(): Promise<boolean> {
+    if (this.initFailed) return false;
     return typeof WebAssembly !== 'undefined';
   }
 
@@ -34,6 +36,8 @@ export class PiperWASMEngine implements TTSEngine {
         console.log('[piper-wasm] Session initialized');
       } catch (err) {
         this.initPromise = null;
+        this.initFailed = true;
+        console.warn('[piper-wasm] Init failed, marking engine unavailable:', (err as Error).message);
         throw err;
       }
     })();
@@ -44,9 +48,9 @@ export class PiperWASMEngine implements TTSEngine {
   async synthesize(req: TTSRequest): Promise<TTSResult> {
     await this.initialize();
 
-    const wav = await this.session.predict({
-      text: req.text,
-    });
+    // piper-tts-web predict() expects a plain string, not an object
+    const text = String(req.text || '');
+    const wav = await this.session.predict(text);
 
     const blob = wav instanceof Blob
       ? wav

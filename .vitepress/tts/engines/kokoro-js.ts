@@ -8,12 +8,14 @@ export class KokoroJSEngine implements TTSEngine {
   private tts: any = null;
   private initializing = false;
   private initPromise: Promise<void> | null = null;
+  private initFailed = false;
 
   async isAvailable(): Promise<boolean> {
-    // Needs WebGPU (fast) or at least WASM (slower)
+    // Don't retry after a failed init
+    if (this.initFailed) return false;
+    // Requires WebGPU — ONNX WASM backend is unreliable in most browsers
     const hasWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
-    const hasWASM = typeof WebAssembly !== 'undefined';
-    return hasWebGPU || hasWASM;
+    return hasWebGPU;
   }
 
   private async initialize(): Promise<void> {
@@ -44,6 +46,8 @@ export class KokoroJSEngine implements TTSEngine {
         console.log('[kokoro-js] Model loaded successfully');
       } catch (err) {
         this.initPromise = null;
+        this.initFailed = true;
+        console.warn('[kokoro-js] Init failed, marking engine unavailable:', (err as Error).message);
         throw err;
       } finally {
         this.initializing = false;
