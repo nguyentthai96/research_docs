@@ -68,10 +68,20 @@ export function extractReadableText(container: HTMLElement): TextSegment[] {
         flushParagraph();
         const text = node.textContent?.trim();
         if (text && text.length > 0) {
+          let cleaned = cleanText(text);
+          // If heading starts with numbered section, ensure "Mục " prefix:
+          // e.g. "1.1 Throughput" → "Mục 1.1. Throughput"
+          // e.g. "1.1. So sánh" → "Mục 1.1. So sánh"
+          // e.g. "1. Các Chỉ Số" (h2+) → "Mục 1. Các Chỉ Số"
+          if (/^(\d+(?:\.\d+)+)\.?\s*/.test(cleaned)) {
+            cleaned = cleaned.replace(/^(\d+(?:\.\d+)+)\.?\s*/, 'Mục $1. ');
+          } else if (/^(\d+)\.\s+/.test(cleaned) && parseInt(tag[1], 10) >= 2) {
+            cleaned = cleaned.replace(/^(\d+)\.\s+/, 'Mục $1. ');
+          }
           segments.push({
             type: 'heading',
-            level: parseInt(tag[1]),
-            text: cleanText(text),
+            level: parseInt(tag[1], 10),
+            text: cleaned,
             element: node,
           });
         }
@@ -99,11 +109,17 @@ export function extractReadableText(container: HTMLElement): TextSegment[] {
 }
 
 /**
+ * Regex matching icons, emojis, pictographs, dingbats, and decorative symbols.
+ * Strips icons so TTS engines don't read them out loud ("tên lửa", "dấu tích", "cảnh báo"...).
+ */
+const ICON_EMOJI_REGEX = /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B00}-\u{2BFF}\u{25A0}-\u{25FF}\u{FE00}-\u{FE0F}\u{200D}]+/gu;
+
+/**
  * Clean text for TTS reading:
  * - Remove markdown artifacts
  * - Remove URLs
+ * - Strip icons and emojis
  * - Normalize whitespace
- * - Remove emojis (optional, keep some)
  */
 function cleanText(text: string): string {
   return (
@@ -118,8 +134,11 @@ function cleanText(text: string): string {
       .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
       // Remove markdown strikethrough
       .replace(/~~([^~]+)~~/g, '$1')
-      // Remove anchor links #
+      // Remove anchor links # and zero-width spaces
       .replace(/\s*¶\s*/g, '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      // Strip icons & emojis (do not read icons out loud)
+      .replace(ICON_EMOJI_REGEX, '')
       // Normalize multiple spaces
       .replace(/\s+/g, ' ')
       // Remove leading/trailing special chars
