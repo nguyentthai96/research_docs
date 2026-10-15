@@ -48,6 +48,10 @@ features:
     title: Redis Deep Dive
     details: Nghiên cứu toàn diện Redis từ cơ bản đến chuyên sâu — kiến trúc single-threaded, 10+ cấu trúc dữ liệu, persistence, Sentinel/Cluster HA, caching patterns, và production checklist.
     link: /guides/redis_deep_dive
+  - icon: 🗄️
+    title: ORM & Database Engineering
+    details: So sánh toàn diện 6 ORM (Prisma, Drizzle, Kysely, Knex, TypeORM, MikroORM) cho Node.js/TypeScript + PostgreSQL. Decision Matrix trọng số, code examples thực tế và khuyến nghị cuối cùng.
+    link: /guides/orm_comparison_analysis
   - icon: ☀️
     title: Năng Lượng Mặt Trời (Solar Energy)
     details: Nghiên cứu thiết kế hệ thống điện mặt trời mái nhà, tính toán phụ tải, so sánh Inverter/Pin lưu trữ và phân tích hoàn vốn Anker SOLIX X1.
@@ -91,10 +95,12 @@ graph TD
         AI["🤖 AI Agents & RAG<br/>(LangGraph, CrewAI, Vector DB, KAG)"]
         Graph["🕸️ Graph Mining & Bot Detection<br/>(Neo4j GDS, GNN, SybilGAT, Twibot-22)"]
         Solar["☀️ Solar Energy Engineering<br/>(PV Design, Battery Storage, Anker SOLIX)"]
+        ORM["🗄️ ORM & Database Engineering<br/>(Prisma vs Drizzle, 6 ORM Comparison)"]
         
         Saga --> Realtime
         Micro --> AI
         MQ --> Graph
+        Scaling --> ORM
     end
 
     classDef t1 fill:#2e3440,stroke:#81a1c1,stroke-width:1px,color:#eceff4;
@@ -102,7 +108,7 @@ graph TD
     classDef t3 fill:#2e3440,stroke:#ebcb8b,stroke-width:1px,color:#eceff4;
     class OOP,SOLID,GoF t1;
     class Scaling,Rust,Micro,MQ,Saga t2;
-    class Realtime,AI,Graph,Solar t3;
+    class Realtime,AI,Graph,Solar,ORM t3;
 ```
 
 ---
@@ -153,6 +159,8 @@ Dành cho kỹ sư thiết kế và nhà đầu tư hệ thống điện mặt t
 |---|---|:---:|
 | [🚀 System Scaling & Performance Guide](/guides/system-scaling-performance-guide) | Khái niệm TPS/QPS/RPS/IOPS, phân vị Latency P50-P99.9, kiến trúc qua các mốc 10K → 500K → 1M → 10M → 1B Users, Caching, DB Sharding, Connection Pooling, Load Testing k6. | `Guide` |
 | [🦀 Rust Zero to Hero Guide](/guides/rust_zero_to_hero_guide) | Cẩm nang Rust toàn diện: Ownership, Borrowing, Concurrency an toàn, Zero-cost Abstractions, Async Runtime Tokio. | `Guide` |
+| [🔴 Redis Deep Dive](/guides/redis_deep_dive) | Kiến trúc single-threaded, 10+ cấu trúc dữ liệu, persistence (RDB/AOF), Sentinel/Cluster HA, caching patterns, Streams, production checklist. | `Deep Dive` |
+| [🔴 Redis Streams Deep Dive](/guides/redis_streams_deep_dive) | Nghiên cứu chuyên sâu Redis Streams: Consumer Groups, cơ chế XADD/XREAD, so sánh với Kafka/RabbitMQ. | `Deep Dive` |
 
 👉 *Xem toàn bộ chuyên mục tại: [🧭 Engineering Guides Hub](/guides/)*
 
@@ -275,3 +283,12 @@ Dành cho kỹ sư thiết kế và nhà đầu tư hệ thống điện mặt t
 ### 🎯 SOTA Skills & Tools
 
 - [🎯 Research Skills SOTA](/research_skills_sota): Phương pháp luận nghiên cứu học thuật đỉnh cao, tra cứu tài liệu khoa học trên ArXiv, PubMed, Semantic Scholar, CrossRef và phân tích citation tự động.
+
+---
+
+### 8. 🗄️ ORM & Database Engineering
+
+| Bài Viết | Trọng Tâm Nghiên Cứu | Phân Loại |
+|---|---|:---:|
+| [🔍 ORM Comparison Analysis (Merged Final)](/guides/orm_comparison_analysis) | So sánh toàn diện 6 ORM (Prisma, Drizzle, Kysely, Knex, TypeORM, MikroORM), benchmark performance, type safety, query capabilities, Decision Matrix trọng số 150 điểm, schema migration guide Prisma → Drizzle, và stack công nghệ final. | `Toàn Diện` |
+| [⚖️ Drizzle vs Prisma — Verdict & Deep Debate](/guides/orm_drizzle_vs_prisma_verdict) | Phân tích sâu 4 tiêu chí trọng tâm (Performance, Complex Query, Stored Procedure, Dễ phát triển), 12-round head-to-head, weighted scoring 103/130 vs 74/130, và khuyến nghị cuối cùng cho dự án EduMathMind. | `Verdict` |

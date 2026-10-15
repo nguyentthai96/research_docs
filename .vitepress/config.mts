@@ -76,7 +76,9 @@ export default withMermaid(
             { text: '🦀 Rust Zero to Hero Guide', link: '/guides/rust_zero_to_hero_guide' },
             { text: '⚡ Realtime & WebRTC Deep Dive', link: '/guides/realtime/webrtc_deep_dive' },
             { text: '🤖 AI Agent Frameworks', link: '/guides/ai-research/ai_agent_frameworks_deep_dive' },
-            { text: '📚 RAG Database Guide', link: '/guides/rag_database_guide' }
+            { text: '📚 RAG Database Guide', link: '/guides/rag_database_guide' },
+            { text: '🗄️ ORM Comparison Analysis', link: '/guides/orm_comparison_analysis' },
+            { text: '⚖️ Drizzle vs Prisma Verdict', link: '/guides/orm_drizzle_vs_prisma_verdict' }
           ]
         },
         {
@@ -132,6 +134,14 @@ export default withMermaid(
           items: [
             { text: '🚀 System Scaling & Performance', link: '/guides/system-scaling-performance-guide' },
             { text: '🦀 Rust Zero to Hero Guide', link: '/guides/rust_zero_to_hero_guide' }
+          ]
+        },
+        {
+          text: '🗄️ ORM & Database Engineering',
+          collapsed: false,
+          items: [
+            { text: '🔍 ORM Comparison Analysis (6 ORM)', link: '/guides/orm_comparison_analysis' },
+            { text: '⚖️ Drizzle vs Prisma — Verdict', link: '/guides/orm_drizzle_vs_prisma_verdict' }
           ]
         },
         {

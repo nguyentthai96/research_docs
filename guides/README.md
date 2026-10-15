@@ -14,6 +14,7 @@ graph TD
     Guides --> Realtime["⚡ Realtime & WebRTC"]
     Guides --> AI["🤖 AI & Graph Mining"]
     Guides --> RAG["📚 RAG & Vector DB"]
+    Guides --> ORM["🗄️ ORM & Database"]
     
     Scaling --> ScalingGuide["System Scaling & Performance Guide<br/>(10K - 1B Users, Latency, Caching, DB)"]
     Scaling --> RustGuide["Rust Zero to Hero Guide<br/>(Memory, Concurrency, Async, Tokio)"]
@@ -30,10 +31,13 @@ graph TD
     RAG --> RAGGuide["RAG Database Selection Guide<br/>(Vector DBs, Indexing, Hybrid Search)"]
     RAG --> RAGImpl["RAG Database Implementation Guide<br/>(Chunking, Embedding, Reranking)"]
     RAG --> RAGEval["RAG & KAG Evaluation Guide<br/>(Faithfulness, Context Precision)"]
+    
+    ORM --> ORMCompare["ORM Comparison Analysis<br/>(6 ORM, Prisma vs Drizzle, Scoring)"]
+    ORM --> ORMVerdict["Drizzle vs Prisma Verdict<br/>(4 tiêu chí, Decision Matrix)"]
 
     classDef default fill:#1e1e2e,stroke:#3b4252,stroke-width:1px,color:#eceff4;
     classDef highlight fill:#2e3440,stroke:#88c0d0,stroke-width:2px,color:#88c0d0;
-    class ScalingGuide,RustGuide,WebRTC,AIAgents,RAGGuide highlight;
+    class ScalingGuide,RustGuide,WebRTC,AIAgents,RAGGuide,ORMCompare highlight;
 ```
 
 ---
@@ -86,3 +90,14 @@ Quy trình thiết kế, triển khai và đánh giá độ chính xác của h�
 | **RAG Database Selection Guide** | Tiêu chí lựa chọn Vector Database (Pinecone, Qdrant, Milvus, pgvector, Weaviate), Hybrid Search, Indexing HNSW/IVF. | `Toàn Diện` | [Đọc ngay →](./rag_database_guide) |
 | **RAG Database Implementation Guide** | Hướng dẫn xây dựng pipeline RAG hoàn chỉnh: Chunking, Embedding, Semantic Cache, Reranking. | `Thực Chiến` | [Đọc ngay →](./rag_database_implementation_guide) |
 | **RAG & KAG Evaluation Guide** | Khung đánh giá chất lượng RAG/KAG: Faithfulness, Answer Relevance, Context Precision, Ragas framework. | `Nâng Cao` | [Đọc ngay →](./rag_kag_evaluation_guide) |
+
+---
+
+## 5. 🗄️ ORM & Database Engineering
+
+Phân tích, so sánh và đánh giá các ORM/Query Builder trong hệ sinh thái Node.js/TypeScript kết nối PostgreSQL/MySQL:
+
+| Tài Liệu | Trọng Tâm Kiến Trúc | Cấp Độ | Liên Kết |
+|---|---|:---:|:---:|
+| **ORM Comparison Analysis (Merged Final)** | So sánh toàn diện 6 ORM (Prisma, Drizzle, Kysely, Knex, TypeORM, MikroORM), Decision Matrix trọng số 150 điểm, code examples thực tế EduMathMind, schema migration guide. | `Toàn Diện` | [Đọc ngay →](./orm_comparison_analysis) |
+| **Drizzle vs Prisma — Verdict & Deep Debate** | Phân tích sâu 4 tiêu chí trọng tâm (Performance, Complex Query, Stored Procedure, Dễ phát triển), 12-round head-to-head, weighted scoring, khuyến nghị cuối cùng. | `Chuyên Sâu` | [Đọc ngay →](./orm_drizzle_vs_prisma_verdict) |
